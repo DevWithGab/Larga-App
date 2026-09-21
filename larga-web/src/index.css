@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+
+@theme {
+  --color-primary: #f57c1f;
+  --color-primary-light: #ff9f4a;
+  --color-primary-dark: #d66a15;
+
+  --font-body: 'Baloo 2', ui-rounded, system-ui, -apple-system, sans-serif;
+}
+
+
+@utility font-regular {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+@utility font-label {
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+@utility font-accent {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+@utility font-heading {
+  font-family: var(--font-body);
+  font-weight: 700;
+}
+@utility font-display {
+  font-family: var(--font-body);
+  font-weight: 800;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: #ffffff;
+  color: #000000;
+  -webkit-font-smoothing: antialiased;
+  /* The app is a full-height map shell; the page itself never scrolls, the
+     panels inside it do. */
+  overscroll-behavior: none;
+}
+
+
+.hero-art-fade {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 11%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 11%);
+}
+
+@media (min-width: 1024px) {
+  .hero-art-fade {
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0%, #000 16%),
+      linear-gradient(to bottom, transparent 0%, #000 11%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent 0%, #000 16%),
+      linear-gradient(to bottom, transparent 0%, #000 11%);
+    mask-composite: intersect;
+  }
+}
+
+
+.maplibregl-ctrl-attrib {
+  font-family: var(--font-body);
+  font-size: 10px;
+}
+
+@media (max-width: 767px) {
+  .maplibregl-ctrl-top-right {
+    display: none;
+  }
+}

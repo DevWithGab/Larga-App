@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow get: if request.auth != null && request.auth.uid == userId;
+
+      // Profile edits never grant permission to change roles or account metadata.
+      allow update: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'phoneNumber', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.name.matches('.*[^\\s].*')
+        && (request.resource.data.get('phoneNumber', null) == null
+          || (request.resource.data.phoneNumber is string
+            && request.resource.data.phoneNumber.matches('09[0-9]{9}')))
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /savedRoutes/{savedRouteId} {
+      function signedIn() {
+        return request.auth != null;
+      }
+
+      function routeIds() {
+        return ['bayombong-bambang', 'bayombong-solano', 'bambang-solano',
+                'bayombong-aritao', 'santafe-aritao'];
+      }
+
+      // Creating a bookmark uses a transaction that first reads its ID,
+      // including when that document does not exist yet.
+      function ownBookmarkId() {
+        let prefix = request.auth.uid + '_';
+        return savedRouteId in [prefix + 'bayombong-bambang', prefix + 'bayombong-solano',
+          prefix + 'bambang-solano', prefix + 'bayombong-aritao', prefix + 'santafe-aritao'];
+      }
+
+      function validFields() {
+        let data = request.resource.data;
+        return data.keys().hasAll(['commuterId', 'routeId', 'createdAt'])
+          && data.keys().hasOnly(['commuterId', 'routeId', 'createdAt', 'updatedAt', 'name', 'notes', 'direction'])
+          && data.commuterId == request.auth.uid
+          && data.routeId in routeIds()
+          && data.createdAt is timestamp
+          && data.get('updatedAt', request.time) is timestamp
+          && data.get('name', '') is string
+          && data.get('name', '').size() <= 60
+          && data.get('notes', '') is string
+          && data.get('notes', '').size() <= 300
+          && data.get('direction', 'forward') in ['forward', 'reverse'];
+      }
+
+      allow list: if signedIn() && resource.data.commuterId == request.auth.uid;
+      allow get: if signedIn() && (
+        (!exists(/databases/$(database)/documents/savedRoutes/$(savedRouteId)) && ownBookmarkId())
+        || resource.data.commuterId == request.auth.uid
+      );
+      allow create: if signedIn() && validFields()
+        && savedRouteId == request.auth.uid + '_' + request.resource.data.routeId
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn() && resource.data.commuterId == request.auth.uid
+        && validFields()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'notes', 'direction', 'updatedAt']);
+      allow delete: if signedIn() && resource.data.commuterId == request.auth.uid;
+    }
+  }
+}
