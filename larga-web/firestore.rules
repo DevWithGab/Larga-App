@@ -5,6 +5,34 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if request.auth != null && request.auth.uid == userId;
 
+      // Signup creates Auth first, then writes this profile under the new UID.
+      // Only the public signup roles/fields are accepted; verification and
+      // administrative privileges cannot be supplied by the client.
+      allow create: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['name', 'email', 'userType', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.name.matches('.*[^\\s].*')
+        && request.resource.data.email is string
+        && request.resource.data.email.lower() == request.auth.token.email.lower()
+        && request.resource.data.createdAt == request.time
+        && (
+          (request.resource.data.userType == 'commuter'
+            && request.resource.data.keys().hasOnly(['name', 'email', 'userType', 'createdAt']))
+          || (request.resource.data.userType == 'driver'
+            && request.resource.data.keys().hasAll(['phone', 'jeepneyNumber', 'seatCapacity'])
+            && request.resource.data.keys().hasOnly([
+              'name', 'email', 'userType', 'createdAt', 'phone', 'jeepneyNumber', 'seatCapacity'
+            ])
+            && request.resource.data.phone is string
+            && request.resource.data.phone.size() > 0
+            && request.resource.data.jeepneyNumber is string
+            && request.resource.data.jeepneyNumber.size() > 0
+            && request.resource.data.seatCapacity is int
+            && request.resource.data.seatCapacity > 0)
+        );
+
       // Profile edits never grant permission to change roles or account metadata.
       allow update: if request.auth != null && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys()

@@ -19,7 +19,8 @@
         "ACCESS_COARSE_LOCATION",
         "FOREGROUND_SERVICE",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
       ],
       "package": "com.anonymous.largaapp"
     },
@@ -50,6 +51,11 @@
           "imageWidth": 200
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fa41a8c4-0168-4418-98ec-33e857272593"
+      }
+    }
   }
 }
