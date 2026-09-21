@@ -18,7 +18,7 @@ export default function RoutesPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
-  const liveDrivers = useOnlineDrivers();
+  const { drivers: liveDrivers, error: driverError } = useOnlineDrivers();
   const { coordinate: myLocation } = useMyLocation();
   const savedRouteIds = saved.routes.map((item) => item.routeId);
 
@@ -65,11 +65,12 @@ export default function RoutesPage() {
           <div><p className="font-accent mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-primary-dark"><Route size={14} />Explore Nueva Vizcaya</p><h1 className="font-display text-4xl tracking-tight text-gray-950 sm:text-5xl">Find your next ride.</h1><p className="mt-2 max-w-lg text-sm leading-relaxed text-gray-500">Explore jeepney routes, compare fares, and see what’s running before you head out.</p></div>
           <button type="button" onClick={() => navigate('/saved-routes')} className="font-accent flex min-h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 hover:border-orange-200 hover:text-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><Bookmark size={17} />Saved routes <ArrowUpRight size={16} /></button>
         </header>
+        {driverError && <p role="alert" className="mb-4 text-sm text-red-600">{driverError}</p>}
         <dl className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
           {[
             { label: 'Jeepney routes', value: ROUTES.length, Icon: Route },
             { label: 'Towns connected', value: townCount, Icon: MapPin },
-            { label: 'Jeepneys online', value: runningCount, Icon: BusFront },
+            { label: 'Jeepneys online', value: driverError ? 'Unavailable' : runningCount, Icon: BusFront },
           ].map(({ label, value, Icon }) => <div key={label} className="flex items-center gap-4 rounded-2xl border border-gray-200/80 bg-white p-4 sm:p-5"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-primary"><Icon size={21} strokeWidth={1.7} /></span><div><dt className="text-xs text-gray-500">{label}</dt><dd className="font-heading mt-0.5 text-2xl leading-none text-gray-950">{value}</dd></div></div>)}
         </dl>
         <section aria-labelledby="route-directory-title">

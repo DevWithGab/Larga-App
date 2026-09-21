@@ -30,7 +30,7 @@ export default function MapPage() {
 
   const [collapsed, setCollapsed] = useState(false);
 
-  const liveDrivers = useOnlineDrivers();
+  const { drivers: liveDrivers, error: driverError } = useOnlineDrivers();
   const { coordinate: myLocation, status: locationStatus } = useMyLocation();
   const { areaRef, sheetStyle, handleProps, isDragging } = useResizableSheet();
 
@@ -237,7 +237,9 @@ export default function MapPage() {
             </p>
           )}
 
-          {visibleDrivers.length === 0 ? (
+          {driverError ? (
+            <p role="alert" className="font-regular text-sm text-red-600">{driverError}</p>
+          ) : visibleDrivers.length === 0 ? (
             <p className="font-regular text-sm text-gray-500">
               No jeepneys are online for this route right now.
             </p>

@@ -250,11 +250,14 @@ export default function DriverHomeScreen() {
     return unsubscribe;
   }, [user]);
 
-  const updateDriverStatus = (data) => {
-    if (!user) return;
-    setDoc(doc(db, 'drivers', user.uid), { ...data, updatedAt: serverTimestamp() }, { merge: true }).catch(
-      (error) => console.warn('Failed to update driver status:', error.message)
-    );
+  const updateDriverStatus = async (data, requireSuccess = false) => {
+    try {
+      if (!user) throw new Error('Please sign in again.');
+      await setDoc(doc(db, 'drivers', user.uid), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+    } catch (error) {
+      console.warn('Failed to update driver status:', error.message);
+      if (requireSuccess) throw error;
+    }
   };
 
   // Only while genuinely broadcasting: a break already writes isOnline:false,
@@ -341,8 +344,26 @@ export default function DriverHomeScreen() {
     if (!hasFixRef.current && isTrustworthyFix(initialFix)) {
       hasFixRef.current = true;
       setDriverLocation([initialFix.coords.longitude, initialFix.coords.latitude]);
+      await updateDriverStatus({
+        location: {
+          latitude: initialFix.coords.latitude,
+          longitude: initialFix.coords.longitude,
+        },
+        locationUpdatedAt: serverTimestamp(),
+      }, true);
+    }
+    if (!hasFixRef.current) {
+      throw new Error('Waiting for an accurate GPS location. Move to an open area and try again.');
     }
     return true;
+  };
+
+  const reportBroadcastFailure = (error) => {
+    watcherRef.current?.remove();
+    watcherRef.current = null;
+    Alert.alert('Unable to go online', error.code === 'permission-denied'
+      ? 'Your account cannot share its location right now. Please contact support.'
+      : error.message);
   };
 
   const goOnline = async () => {
@@ -352,21 +373,25 @@ export default function DriverHomeScreen() {
       return;
     }
 
-    const started = await startLocationWatch();
-    if (!started) return;
+    try {
+      const started = await startLocationWatch();
+      if (!started) return;
 
-    updateDriverStatus({
-      isOnline: true,
-      jeepneyNumber: profile?.jeepneyNumber ?? null,
-      routeId,
-      direction,
-      passengerCount,
-      seatCapacity: capacity,
-      onlineSince: serverTimestamp(),
-    });
-    setIsOnline(true);
-    setElapsed(0);
-    startElapsedTimer();
+      await updateDriverStatus({
+        isOnline: true,
+        jeepneyNumber: profile?.jeepneyNumber ?? null,
+        routeId,
+        direction,
+        passengerCount,
+        seatCapacity: capacity,
+        onlineSince: serverTimestamp(),
+      }, true);
+      setIsOnline(true);
+      setElapsed(0);
+      startElapsedTimer();
+    } catch (error) {
+      reportBroadcastFailure(error);
+    }
   };
 
   const goOffline = () => {
@@ -434,19 +459,23 @@ export default function DriverHomeScreen() {
   };
 
   const resumeTrip = async () => {
-    const started = await startLocationWatch();
-    if (!started) return;
-    // Rewind onlineSince past the time already driven so it keeps meaning
-    // "when this trip's clock started", with the break excluded. Anything
-    // that later rebuilds the trip length from the document — the logout
-    // path, rehydrating on the next launch — then gets driving time rather
-    // than wall-clock time that silently counted the break.
-    updateDriverStatus({
-      isOnline: true,
-      onlineSince: Timestamp.fromMillis(Date.now() - elapsed * 1000),
-    });
-    setOnBreak(false);
-    startElapsedTimer();
+    try {
+      const started = await startLocationWatch();
+      if (!started) return;
+      // Rewind onlineSince past the time already driven so it keeps meaning
+      // "when this trip's clock started", with the break excluded. Anything
+      // that later rebuilds the trip length from the document — the logout
+      // path, rehydrating on the next launch — then gets driving time rather
+      // than wall-clock time that silently counted the break.
+      await updateDriverStatus({
+        isOnline: true,
+        onlineSince: Timestamp.fromMillis(Date.now() - elapsed * 1000),
+      }, true);
+      setOnBreak(false);
+      startElapsedTimer();
+    } catch (error) {
+      reportBroadcastFailure(error);
+    }
   };
 
   const adjustPassengers = (delta) => {

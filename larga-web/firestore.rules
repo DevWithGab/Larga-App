@@ -47,6 +47,35 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    match /drivers/{driverId} {
+      function ownsDriver() {
+        return request.auth != null && request.auth.uid == driverId
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'driver';
+      }
+
+      // Commuter queries use where('isOnline', '==', true).
+      // Drivers also read their own document before it exists or while offline.
+      allow get: if ownsDriver()
+        || (request.auth != null && resource.data.isOnline == true);
+      allow list: if request.auth != null && resource.data.isOnline == true;
+      allow create, update: if ownsDriver()
+        && request.resource.data.keys().hasOnly([
+          'isOnline', 'location', 'locationUpdatedAt', 'updatedAt', 'onlineSince',
+          'jeepneyNumber', 'routeId', 'direction', 'passengerCount', 'seatCapacity', 'heading'
+        ])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.get('isOnline', false) is bool
+        && (!('location' in request.resource.data) || (
+          request.resource.data.location.keys().hasOnly(['latitude', 'longitude'])
+          && request.resource.data.location.latitude is number
+          && request.resource.data.location.latitude >= -90
+          && request.resource.data.location.latitude <= 90
+          && request.resource.data.location.longitude is number
+          && request.resource.data.location.longitude >= -180
+          && request.resource.data.location.longitude <= 180
+        ));
+    }
+
     match /savedRoutes/{savedRouteId} {
       function signedIn() {
         return request.auth != null;
