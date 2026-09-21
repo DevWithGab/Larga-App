@@ -135,9 +135,10 @@ export default function MapPage() {
             />
           </div>
 
-          {/* The negative margin lets the row scroll edge to edge on a phone
-              while the pills still start in line with the search bar. */}
-          <div className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-2">
+          {/* Enable gestures on the scroll container, including gaps between pills.
+              The negative margin keeps horizontal scrolling edge to edge. */}
+          <div className="pointer-events-auto -mx-5 mt-3 flex touch-pan-x gap-2 overflow-x-auto
+                          overscroll-x-contain px-5 pb-2">
             {FILTERS.map(({ id, label }) => {
               const isActive = id === activeFilter;
               return (
