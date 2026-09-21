@@ -29,7 +29,7 @@ const DEFAULT_CAPACITY = 16; // used only if the driver's profile has no seatCap
 const MAX_ACCURACY_METERS = 50;
 
 
-const MIN_MOVE_METERS_FOR_UPDATE = 5;
+const MIN_MOVE_METERS_FOR_UPDATE = 10;
 
 
 const HEARTBEAT_MS = 30 * 1000;
