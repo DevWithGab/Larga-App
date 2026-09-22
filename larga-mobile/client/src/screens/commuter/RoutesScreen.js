@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, doc, onSnapshot, query, where, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { db } from '../../services/firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSavedRoutes } from '../../hooks/useSavedRoutes';
 import { ROUTES } from '../../constants/routes';
 import { distanceMeters, estimateEtaMinutes } from '../../utils/geo';
 import RouteCard from '../../components/RouteCard';
@@ -13,10 +13,10 @@ import { isDriverLive } from '../../utils/driverPresence';
 const TABS = ['Running', 'All', 'Saved'];
 
 export default function RoutesScreen({ navigation, route }) {
-  const { user } = useAuth();
+  const saved = useSavedRoutes();
+  const savedRouteIds = saved.routes.map((item) => item.routeId);
   const [tab, setTab] = useState('Running');
   const [onlineDrivers, setOnlineDrivers] = useState([]);
-  const [savedRouteIds, setSavedRouteIds] = useState([]);
   const [myLocation, setMyLocation] = useState(null);
   const [now, setNow] = useState(Date.now());
 
@@ -35,41 +35,28 @@ export default function RoutesScreen({ navigation, route }) {
     const driversQuery = query(collection(db, 'drivers'), where('isOnline', '==', true));
     const unsubscribe = onSnapshot(driversQuery, (snapshot) => {
       setOnlineDrivers(snapshot.docs.map((docSnap) => docSnap.data()).filter((driver) => driver.location));
-    });
+    }, () => setOnlineDrivers([]));
     return unsubscribe;
   }, []);
 
-  // Real, per-user saved routes — a bookmark toggle persisted in Firestore,
-  // not local-only state that forgets itself on next login.
-  useEffect(() => {
-    if (!user) return;
-    const savedQuery = query(collection(db, 'savedRoutes'), where('commuterId', '==', user.uid));
-    const unsubscribe = onSnapshot(savedQuery, (snapshot) => {
-      setSavedRouteIds(snapshot.docs.map((docSnap) => docSnap.data().routeId));
-    });
-    return unsubscribe;
-  }, [user]);
-
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted') return;
       // High, not the default: an empty options object means Balanced, which
       // is only ~100m accurate — and each route card's "Next: ~N min away" is
       // measured from this point.
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setMyLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-    })();
+    })().catch(() => {});
   }, []);
 
-  const toggleSaved = (routeId) => {
-    if (!user) return;
-    const ref = doc(db, 'savedRoutes', `${user.uid}_${routeId}`);
-    if (savedRouteIds.includes(routeId)) {
-      deleteDoc(ref);
-    } else {
-      setDoc(ref, { commuterId: user.uid, routeId, createdAt: serverTimestamp() });
-    }
+  const toggleSaved = async (routeId) => {
+    try {
+      const existing = saved.routes.find((item) => item.routeId === routeId);
+      if (existing) await saved.remove(existing);
+      else await saved.create({ routeId });
+    } catch (error) { Alert.alert('Could not save route', error.message); }
   };
 
   // A jeepney whose phone stopped checking in shouldn't keep padding the

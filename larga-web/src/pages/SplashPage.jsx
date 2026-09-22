@@ -69,12 +69,12 @@ export default function SplashPage() {
             className="h-14 object-contain sm:h-20"
           />
           <Link
-            to="/login"
+            to="/driver"
             className="font-accent rounded-full border border-primary/50 bg-white/70 px-6 py-2.5
                        text-sm text-black backdrop-blur-sm transition-colors hover:bg-primary
                        hover:text-white sm:text-base"
           >
-            Sign in
+            Driver sign in
           </Link>
         </header>
 
@@ -121,7 +121,7 @@ export default function SplashPage() {
                 asks this on a separate screen, but a landing page has room. */}
             <div className="mt-9 flex flex-col gap-3.5 sm:flex-row">
               <Link
-                to="/role"
+                to="/map"
                 className="flex items-center justify-center gap-2 rounded-full bg-primary px-9 py-5
                            shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]
                            active:scale-100"

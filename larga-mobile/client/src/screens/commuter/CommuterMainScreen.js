@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { db } from '../../services/firebase';
 import JeepneyMap from '../../components/JeepneyMap';
+import LocationPrompt from '../../components/LocationPrompt';
 import MapLegend from '../../components/MapLegend';
 import JeepneyIcon from '../../components/JeepneyIcon';
 import { DEFAULT_CENTER } from '../../constants/map';
@@ -20,8 +21,12 @@ const FILTERS = [
 ];
 
 export default function CommuterMainScreen({ navigation, route }) {
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [locationPrompt, setLocationPrompt] = useState(0);
+  const onLocationReady = useCallback(() => setLocationEnabled(true), []);
   const [activeFilter, setActiveFilter] = useState('all');
   const [onlineDrivers, setOnlineDrivers] = useState([]);
+  const [driverError, setDriverError] = useState('');
   const [myLocation, setMyLocation] = useState(null);
   const [now, setNow] = useState(Date.now());
 
@@ -43,8 +48,9 @@ export default function CommuterMainScreen({ navigation, route }) {
       const drivers = snapshot.docs
         .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
         .filter((driver) => driver.location);
+      setDriverError('');
       setOnlineDrivers(drivers);
-    });
+    }, () => { setOnlineDrivers([]); setDriverError('Could not load live jeepneys. Check your connection and try reopening the map.'); });
     return unsubscribe;
   }, []);
 
@@ -53,11 +59,12 @@ export default function CommuterMainScreen({ navigation, route }) {
   // became "where you were when you opened the app" — walk a kilometre and
   // your own dot never budged, and every ETA stayed measured from the start.
   useEffect(() => {
+    if (!locationEnabled) return;
     let subscription = null;
     let cancelled = false;
 
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted' || cancelled) return;
       // High, not the default: an empty options object means Balanced, which
       // is only ~100m accurate.
@@ -69,13 +76,13 @@ export default function CommuterMainScreen({ navigation, route }) {
         subscription.remove();
         subscription = null;
       }
-    })();
+    })().catch(() => setLocationEnabled(false));
 
     return () => {
       cancelled = true;
       if (subscription) subscription.remove();
     };
-  }, []);
+  }, [locationEnabled]);
 
   const visibleDrivers = onlineDrivers.filter(
     (driver) =>
@@ -96,6 +103,7 @@ export default function CommuterMainScreen({ navigation, route }) {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      <LocationPrompt onReady={onLocationReady} visibleRequest={locationPrompt} />
       {/* Search bar */}
       <View className="flex-row items-center px-5 pt-3 pb-3" style={{ gap: 12 }}>
         <View className="flex-1 flex-row items-center bg-gray-100 rounded-full px-4 py-3">
@@ -148,6 +156,9 @@ export default function CommuterMainScreen({ navigation, route }) {
       <View className="flex-1">
         <JeepneyMap markers={markers} center={myLocation ?? DEFAULT_CENTER} />
         <MapLegend />
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Turn on location" onPress={() => setLocationPrompt((value) => value + 1)} className="absolute right-4 top-4 bg-white rounded-full p-3">
+          <Ionicons name="locate-outline" size={24} color="#111" />
+        </TouchableOpacity>
 
         <View
           className="absolute left-0 right-0 bottom-0 bg-white rounded-t-3xl px-5 pt-5 pb-6"
@@ -169,7 +180,7 @@ export default function CommuterMainScreen({ navigation, route }) {
 
           {visibleDrivers.length === 0 ? (
             <Text className="font-regular text-sm text-gray-500 mb-2">
-              No jeepneys are online for this route right now.
+              {driverError || 'No jeepneys are online for this route right now.'}
             </Text>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>

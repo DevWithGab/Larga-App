@@ -88,7 +88,7 @@ export default function AlertsPage() {
             <Bell size={48} color="#d1d5db" />
             <p className="font-heading mt-4 text-lg text-black">No active alerts</p>
             <p className="font-regular mt-1 text-sm text-gray-500">
-              Tap "Alert me" on a jeepney in the mobile app to get notified when it's close.
+              {user ? 'Tap "Alert me" on a jeepney in the mobile app to get notified when it is close.' : 'Arrival alerts stay on the device where you set them. Open the mobile app to set an alert while tracking a jeepney.'}
             </p>
           </div>
         ) : (

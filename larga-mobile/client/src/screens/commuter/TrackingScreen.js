@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, onSnapshot, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { db } from '../../services/firebase';
+import { subscribeGuestAlerts, setGuestAlert } from '../../utils/guestAlerts';
 import { useAuth } from '../../contexts/AuthContext';
 import JeepneyMap from '../../components/JeepneyMap';
 import JeepneyIcon from '../../components/JeepneyIcon';
@@ -46,7 +47,7 @@ export default function TrackingScreen({ navigation, route }) {
     if (!driverId) return;
     const unsubscribe = onSnapshot(doc(db, 'drivers', driverId), (snap) => {
       setDriver(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-    });
+    }, () => setDriver(null));
     return unsubscribe;
   }, [driverId]);
 
@@ -54,7 +55,7 @@ export default function TrackingScreen({ navigation, route }) {
     if (!driverId) return;
     getDoc(doc(db, 'users', driverId)).then((snap) => {
       if (snap.exists()) setDriverName(snap.data().name?.split(' ')[0] ?? null);
-    });
+    }).catch(() => setDriverName(null));
   }, [driverId]);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function TrackingScreen({ navigation, route }) {
     let cancelled = false;
 
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted' || cancelled) return;
       // High, not the default: an empty options object means Balanced, which
       // is only ~100m accurate.
@@ -80,7 +81,7 @@ export default function TrackingScreen({ navigation, route }) {
         subscription.remove();
         subscription = null;
       }
-    })();
+    })().catch(() => {});
 
     return () => {
       cancelled = true;
@@ -91,7 +92,8 @@ export default function TrackingScreen({ navigation, route }) {
   // Reflect whether an alert already exists for this jeepney (e.g. the
   // commuter set one, left this screen, and came back).
   useEffect(() => {
-    if (!user || !driverId) return;
+    if (!driverId) return;
+    if (!user) return subscribeGuestAlerts((items) => setAlerting(items.some((item) => item.driverId === driverId)));
     let cancelled = false;
     getDoc(doc(db, 'alerts', `${user.uid}_${driverId}`)).then((snap) => {
       if (!cancelled) setAlerting(snap.exists());
@@ -127,7 +129,19 @@ export default function TrackingScreen({ navigation, route }) {
       : null;
 
   const handleAlert = async () => {
-    if (!user || !driverId) return;
+    if (!driverId) return;
+    if (!user) {
+      if (!myLocation && !alerting) { Alert.alert('Location needed', 'Turn on location from the map before setting an arrival alert.'); return; }
+      try {
+        await setGuestAlert(driverId, alerting ? null : {
+          routeId: driver?.routeId ?? null, direction: driver?.direction ?? 'forward',
+          jeepneyNumber: driver?.jeepneyNumber ?? null,
+          pickupLocation: { latitude: myLocation[1], longitude: myLocation[0] },
+        });
+        Alert.alert(alerting ? 'Alert turned off' : "You'll be notified", alerting ? undefined : 'Keep Larga open to receive your arrival alert.');
+      } catch (error) { Alert.alert('Could not save alert', error.message); }
+      return;
+    }
     const alertRef = doc(db, 'alerts', `${user.uid}_${driverId}`);
     const next = !alerting;
     setAlerting(next);

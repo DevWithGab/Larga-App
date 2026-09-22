@@ -2,9 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import CommuterLayout from './components/CommuterLayout';
 import SplashPage from './pages/SplashPage';
-import RoleSelectionPage from './pages/RoleSelectionPage';
-import CommuterLoginPage from './pages/CommuterLoginPage';
-import CommuterSignUpPage from './pages/CommuterSignUpPage';
 import DriverLoginPage from './pages/DriverLoginPage';
 import DriverSignUpPage from './pages/DriverSignUpPage';
 import DriverTripsPage from './pages/DriverTripsPage';
@@ -28,21 +25,7 @@ export default function App() {
 
   if (loading) return <LoadingScreen />;
 
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/" element={<SplashPage />} />
-        <Route path="/role" element={<RoleSelectionPage />} />
-        <Route path="/login" element={<CommuterLoginPage />} />
-        <Route path="/signup" element={<CommuterSignUpPage />} />
-        <Route path="/driver" element={<DriverLoginPage />} />
-        <Route path="/driver/signup" element={<DriverSignUpPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    );
-  }
-
-  if (userType === 'driver') {
+  if (user && userType === 'driver') {
     // Drivers get their trip history on the web and nothing else: reading past
     // trips works fine in a browser, but broadcasting a live position doesn't,
     // because the tab stops reporting once the phone locks.
@@ -56,6 +39,12 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/" element={<SplashPage />} />
+      <Route path="/role" element={<Navigate to="/" replace />} />
+      <Route path="/login" element={<Navigate to="/map" replace />} />
+      <Route path="/signup" element={<Navigate to="/map" replace />} />
+      <Route path="/driver" element={<DriverLoginPage />} />
+      <Route path="/driver/signup" element={<DriverSignUpPage />} />
       <Route element={<CommuterLayout />}>
         <Route path="/map" element={<MapPage />} />
         <Route path="/routes" element={<RoutesPage />} />

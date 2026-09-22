@@ -71,7 +71,7 @@ export default function DriverLoginScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Role Badge */}
-          <RoleBadge role="driver" navigation={navigation} targetScreen="CommuterLogin" />
+          <RoleBadge role="driver" navigation={navigation} targetScreen="Splash" />
 
           {/* Title */}
           <Text className="font-heading text-4xl text-black mb-2">Balik biyahe.</Text>

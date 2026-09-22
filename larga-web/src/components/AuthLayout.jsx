@@ -18,7 +18,7 @@ export default function AuthLayout({
   badge,
   title,
   subtitle,
-  backTo = '/role',
+  backTo = '/',
   // Driver sign-up has six fields; at `xl` they pair up two to a row instead
   // of becoming a long scroll.
   width = 'md',

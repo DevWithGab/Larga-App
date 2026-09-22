@@ -72,6 +72,17 @@ export default function ProfilePage() {
     }
   };
 
+  if (!user) return (
+    <div className="h-full overflow-y-auto bg-white px-6 py-8">
+      <div className="mx-auto max-w-lg">
+        <h1 className="font-heading text-3xl">You're ready to ride.</h1>
+        <p className="font-regular mt-3 text-gray-600">Use the map without an account. Your saved routes stay in this browser.</p>
+        <button className="font-accent mt-6 rounded-full bg-primary px-6 py-3 text-white" onClick={() => navigate('/driver')}>I drive a jeepney</button>
+        <button className="font-accent mt-3 block px-6 py-3 text-gray-600" onClick={() => navigate('/')}>Back to start</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="h-full overflow-y-auto bg-[#f8f9fb] px-5 py-7 sm:px-8 lg:px-12 lg:py-10">
       <div className="mx-auto w-full max-w-6xl">

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, doc, onSnapshot, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { subscribeGuestAlerts, setGuestAlert } from '../../utils/guestAlerts';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRoute, routeLabel } from '../../constants/routes';
 import { distanceMeters, formatDistance } from '../../utils/geo';
@@ -12,6 +13,7 @@ import { isDriverLive } from '../../utils/driverPresence';
 
 
 function AlertCard({ alertId, alert, onPress }) {
+  const { user } = useAuth();
   const [driver, setDriver] = useState(null);
   const [now, setNow] = useState(Date.now());
 
@@ -24,7 +26,7 @@ function AlertCard({ alertId, alert, onPress }) {
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'drivers', alert.driverId), (snap) => {
       setDriver(snap.exists() ? snap.data() : null);
-    });
+    }, () => setDriver(null));
     return unsubscribe;
   }, [alert.driverId]);
 
@@ -57,7 +59,7 @@ function AlertCard({ alertId, alert, onPress }) {
 
       <TouchableOpacity
         className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center"
-        onPress={() => deleteDoc(doc(db, 'alerts', alertId))}
+        onPress={() => (user ? deleteDoc(doc(db, 'alerts', alertId)) : setGuestAlert(alert.driverId, null)).catch((error) => Alert.alert('Could not remove alert', error.message))}
         activeOpacity={0.8}
       >
         <Ionicons name="close" size={20} color="#000" />
@@ -71,7 +73,7 @@ export default function AlertsScreen({ navigation }) {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return subscribeGuestAlerts(setAlerts);
     const alertsQuery = query(collection(db, 'alerts'), where('commuterId', '==', user.uid));
     const unsubscribe = onSnapshot(alertsQuery, (snapshot) => {
       setAlerts(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));

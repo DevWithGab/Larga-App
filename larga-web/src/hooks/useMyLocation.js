@@ -10,10 +10,21 @@ import { useEffect, useState } from 'react';
 // on localhost, so "denied" and "unavailable" are both worth telling the user
 // apart from "still figuring it out".
 export function useMyLocation() {
+  const [requested, setRequested] = useState(0);
+  const [allowed, setAllowed] = useState(false);
   const [coordinate, setCoordinate] = useState(null);
   const [status, setStatus] = useState('pending'); // pending | granted | denied | unavailable
 
   useEffect(() => {
+    let active = true;
+    navigator.permissions?.query({ name: 'geolocation' }).then((permission) => {
+      if (active && permission.state === 'granted') setAllowed(true);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!allowed && !requested) return undefined;
     if (!navigator.geolocation) {
       setStatus('unavailable');
       return undefined;
@@ -33,7 +44,7 @@ export function useMyLocation() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [allowed, requested]);
 
-  return { coordinate, status };
+  return { coordinate, status, requestLocation: () => setRequested((value) => value + 1) };
 }

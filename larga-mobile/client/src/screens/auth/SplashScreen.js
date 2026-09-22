@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -9,7 +9,7 @@ export default function SplashScreen({ navigation }) {
   return (
     <SafeAreaView className="flex-1 bg-primary">
       <StatusBar style="light" />
-      <View className="flex-1 px-10 pt-12 pb-10">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 }}>
         {/* Decorative dashed divider, pinned near the top */}
         <View className="w-full border-t border-dashed border-white/40 mb-12" />
 
@@ -37,20 +37,25 @@ export default function SplashScreen({ navigation }) {
           {/* CTA Button */}
           <TouchableOpacity
             className="bg-black py-4 px-12 rounded-full flex-row items-center justify-center w-full gap-2"
-            onPress={() => navigation.navigate('RoleSelection')}
+            onPress={() => navigation.navigate('Commuter')}
             activeOpacity={0.9}
           >
             <Text className="font-heading text-white text-lg tracking-wide">LARGA NA!</Text>
             <Ionicons name="arrow-forward" size={24} color="#f57c1f" />
           </TouchableOpacity>
 
-          {/* Pagination Dots */}
-          <View className="flex-row items-center gap-2 mt-10">
-            <View className="w-2 h-2 rounded-full bg-white/40" />
-            <View className="w-6 h-2 rounded-full bg-black" />
-          </View>
+          <TouchableOpacity
+            className="mt-3 py-4 px-4 rounded-full border border-black/30 flex-row items-center justify-center w-full gap-2"
+            onPress={() => navigation.navigate('DriverLogin')}
+            accessibilityRole="button"
+            activeOpacity={0.8}
+          >
+            <Ionicons name="bus-outline" size={22} color="#000" />
+            <Text className="font-accent text-black text-base">I DRIVE A JEEPNEY</Text>
+          </TouchableOpacity>
+          <Text className="font-regular text-black text-sm mt-4">No account needed to find your ride.</Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

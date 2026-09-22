@@ -40,7 +40,7 @@ export default function CommuterLayout() {
     });
 
   const handleLogOut = async () => {
-    await logOut();
+    if (user) await logOut();
     // Without this the router would land on the splash anyway once `user`
     // clears, but asking explicitly avoids a frame of the commuter shell
     // rendering with nobody signed in.
@@ -160,13 +160,13 @@ export default function CommuterLayout() {
             <button
               type="button"
               onClick={handleLogOut}
-              title={collapsed ? 'Log out' : undefined}
+              title={collapsed ? (user ? 'Log out' : 'Back to start') : undefined}
               className={`flex w-full items-center gap-3 rounded-xl py-2.5 text-gray-500
                           transition-colors hover:bg-red-50 hover:text-red-600
                           ${collapsed ? 'justify-center px-0' : 'px-4'}`}
             >
               <LogOut size={22} strokeWidth={2} />
-              {!collapsed && <span className="font-accent text-sm">Log out</span>}
+              {!collapsed && <span className="font-accent text-sm">{user ? 'Log out' : 'Back to start'}</span>}
             </button>
           </div>
         </div>

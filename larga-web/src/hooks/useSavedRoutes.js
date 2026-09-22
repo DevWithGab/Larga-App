@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, onSnapshot, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
+import { readGuestRoutes, subscribeGuestRoutes, mutateGuestRoutes } from '../utils/guestSavedRoutes';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../services/firebase';
 import { ROUTES } from '../constants/routes';
@@ -7,14 +8,22 @@ import { savedRouteFields, writeSavedRoute } from '../utils/savedRoutes';
 
 export function useSavedRoutes() {
   const { user } = useAuth();
-  const uid = user?.uid;
+  const uid = user?.uid ?? 'guest';
   const [state, setState] = useState({ uid: null, routes: [], loading: true, error: null });
   const [retry, setRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
 
   useEffect(() => {
-    if (!uid) return undefined;
+    if (!user) {
+      let active = true;
+      const refresh = () => readGuestRoutes().then((routes) => {
+        if (active) setState({ uid, routes, loading: false, error: null });
+      }).catch((error) => { if (active) setState({ uid, routes: [], loading: false, error }); });
+      refresh();
+      const unsubscribe = subscribeGuestRoutes(refresh);
+      return () => { active = false; unsubscribe(); };
+    }
     let active = true;
     setState({ uid, routes: [], loading: true, error: null });
     const unsubscribe = onSnapshot(query(collection(db, 'savedRoutes'), where('commuterId', '==', uid)),
@@ -25,10 +34,9 @@ export function useSavedRoutes() {
         if (active) setState({ uid, routes: [], loading: false, error });
       });
     return () => { active = false; unsubscribe(); };
-  }, [uid, retry]);
+  }, [uid, user, retry]);
 
   async function mutate(action, value) {
-    if (!uid) throw new Error('Sign in to manage saved routes.');
     if (lock.current) throw new Error('Please wait for your previous change to finish.');
     if (state.uid !== uid || state.loading || state.error) throw new Error('Wait for your saved routes to load, then try again.');
     const fields = action === 'delete' ? null : savedRouteFields(value, ROUTES.map((route) => route.id));
@@ -37,6 +45,10 @@ export function useSavedRoutes() {
     lock.current = true;
     setBusy(true);
     try {
+      if (!user) {
+        await mutateGuestRoutes(action, action === 'delete' ? value : { ...fields, id: value.id });
+        return;
+      }
       await runTransaction(db, async (transaction) => {
         const ref = doc(db, 'savedRoutes', id);
         const snapshot = await transaction.get(ref);

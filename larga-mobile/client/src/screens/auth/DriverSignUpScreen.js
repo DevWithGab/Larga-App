@@ -78,7 +78,7 @@ export default function DriverSignUpScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Role Badge */}
-          <RoleBadge role="driver" navigation={navigation} targetScreen="CommuterSignUp" />
+          <RoleBadge role="driver" navigation={navigation} targetScreen="Splash" />
 
           {/* Title */}
           <Text className="font-heading text-3xl text-black mb-2">Register your jeepney</Text>

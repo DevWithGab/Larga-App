@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { subscribeGuestAlerts } from '../utils/guestAlerts';
 import { useAuth } from '../contexts/AuthContext';
 import { distanceMeters, formatDistance } from '../utils/geo';
 import { isDriverLive } from '../utils/driverPresence';
@@ -22,7 +23,25 @@ export function useProximityAlerts() {
   const notifiedRef = useRef(new Set());
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      let alerts = [];
+      const unsubscribe = subscribeGuestAlerts((items) => { alerts = items; });
+      const stopDrivers = onSnapshot(query(collection(db, 'drivers'), where('isOnline', '==', true)), (snapshot) => {
+        snapshot.docs.forEach((item) => {
+          const driver = item.data();
+          if (!isDriverLive(driver)) return;
+          const alert = alerts.find((entry) => entry.driverId === item.id);
+          if (!alert?.pickupLocation) return;
+          const key = JSON.stringify(alert);
+          const distance = distanceMeters(alert.pickupLocation, driver.location);
+          if (distance !== null && distance <= NEARBY_THRESHOLD_METERS && !notifiedRef.current.has(key)) {
+            notifiedRef.current.add(key);
+            Alert.alert('Your jeepney is close!', (driver.jeepneyNumber ?? 'Your jeepney') + ' is ' + formatDistance(distance) + ' from where you set the alert.');
+          }
+        });
+      }, () => {});
+      return () => { unsubscribe(); stopDrivers(); notifiedRef.current.clear(); };
+    }
 
     const alertsQuery = query(collection(db, 'alerts'), where('commuterId', '==', user.uid));
     const unsubscribeAlerts = onSnapshot(alertsQuery, (snapshot) => {

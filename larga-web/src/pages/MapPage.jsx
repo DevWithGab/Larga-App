@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Crosshair, Search } from 'lucide-react';
 import JeepneyMap from '../components/JeepneyMap';
+import LocationPrompt from '../components/LocationPrompt';
 import MapLegend from '../components/MapLegend';
 import { useOnlineDrivers } from '../hooks/useOnlineDrivers';
 import { useMyLocation } from '../hooks/useMyLocation';
@@ -31,7 +32,7 @@ export default function MapPage() {
   const [collapsed, setCollapsed] = useState(false);
 
   const { drivers: liveDrivers, error: driverError } = useOnlineDrivers();
-  const { coordinate: myLocation, status: locationStatus } = useMyLocation();
+  const { coordinate: myLocation, status: locationStatus, requestLocation } = useMyLocation();
   const { areaRef, sheetStyle, handleProps, isDragging } = useResizableSheet();
 
   const [routeLine, setRouteLine] = useState(null);
@@ -108,6 +109,7 @@ export default function MapPage() {
     // The map is the page: it fills the pane and the controls float over it,
     // rather than sitting in a white strip that eats the top of the screen.
     <div className="h-full w-full">
+      <LocationPrompt status={locationStatus} onEnable={requestLocation} />
       <div ref={areaRef} className="relative h-full w-full">
         <JeepneyMap
           markers={markers}
@@ -162,11 +164,11 @@ export default function MapPage() {
 
         <MapLegend />
 
-        {myLocation && (
+        {(
           <button
             type="button"
-            onClick={() => focusOn(myLocation)}
-            aria-label="Recenter on my location"
+            onClick={() => myLocation ? focusOn(myLocation) : requestLocation()}
+            aria-label={myLocation ? 'Recenter on my location' : 'Turn on location'}
             className="absolute right-4 top-32 flex h-11 w-11 items-center justify-center rounded-full
                        bg-white shadow-lg shadow-black/10 hover:bg-gray-50"
           >

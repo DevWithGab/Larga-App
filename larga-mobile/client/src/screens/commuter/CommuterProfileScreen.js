@@ -47,6 +47,18 @@ export default function CommuterProfileScreen({ navigation }) {
     ]);
   };
 
+  if (!user) return (
+    <SafeAreaView className="flex-1 bg-white">
+      <ScrollView className="px-6 pt-8">
+        <Text className="font-heading text-3xl text-black">You're ready to ride.</Text>
+        <Text className="font-regular text-base text-gray-600 mt-3">Use the map without an account. Your saved routes stay on this device.</Text>
+        <AccountRow icon="bookmark-outline" title="Saved routes" subtitle="Your regular rides, in one place" onPress={() => navigation.navigate('SavedRoutes')} />
+        <AccountRow icon="bus-outline" title="I drive a jeepney" subtitle="Driver login and sign-up" onPress={() => navigation.navigate('Auth', { screen: 'DriverLogin' })} />
+        <AccountRow icon="arrow-back" title="Back to start" subtitle="Return to the welcome screen" onPress={() => navigation.navigate('Auth', { screen: 'Splash' })} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 32 }}>

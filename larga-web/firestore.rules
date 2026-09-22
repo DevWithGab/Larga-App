@@ -56,8 +56,8 @@ service cloud.firestore {
       // Commuter queries use where('isOnline', '==', true).
       // Drivers also read their own document before it exists or while offline.
       allow get: if ownsDriver()
-        || (request.auth != null && resource.data.isOnline == true);
-      allow list: if request.auth != null && resource.data.isOnline == true;
+        || resource.data.isOnline == true;
+      allow list: if resource.data.isOnline == true;
       allow create, update: if ownsDriver()
         && request.resource.data.keys().hasOnly([
           'isOnline', 'location', 'locationUpdatedAt', 'updatedAt', 'onlineSince',

@@ -27,7 +27,10 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           // Auth screens - Splash, Login, Register
-          <Stack.Screen name="Auth" component={AuthStack} />
+          <Stack.Group navigationKey="guest">
+            <Stack.Screen name="Auth" component={AuthStack} />
+            <Stack.Screen name="Commuter" component={CommuterStack} />
+          </Stack.Group>
         ) : userType === 'driver' ? (
           // Driver screens - GPS tracking, route info, etc.
           <Stack.Screen name="Driver" component={DriverStack} />
