@@ -63,19 +63,26 @@ export default function DriverTripsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('Today');
   const [trips, setTrips] = useState(null); // null while still loading
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    if (!user) return undefined;
+    setLoadError('');
+    setTrips(null);
+    if (!user) { setTrips([]); return undefined; }
     const tripsQuery = query(collection(db, 'trips'), where('driverId', '==', user.uid));
     return onSnapshot(
       tripsQuery,
       (snapshot) => setTrips(toSortedTrips(snapshot.docs)),
       (error) => {
         console.warn('Failed to load trip reports:', error.message);
+        setLoadError(error.code === 'permission-denied'
+          ? 'Trip reports are blocked by the database permissions. Please contact support.'
+          : 'Could not load your trips. Check your connection and try again.');
         setTrips([]);
       }
     );
-  }, [user]);
+  }, [user?.uid, retry]);
 
   const visibleTrips = useMemo(() => {
     if (!trips) return [];
@@ -147,7 +154,12 @@ export default function DriverTripsPage() {
           />
         </div>
 
-        {trips === null ? (
+        {loadError ? (
+          <div role="alert" className="py-8 text-center">
+            <p className="font-regular text-sm text-red-600">{loadError}</p>
+            <button type="button" onClick={() => setRetry((value) => value + 1)} className="font-accent mt-4 rounded-full bg-black px-6 py-3 text-sm text-white">Try again</button>
+          </div>
+        ) : trips === null ? (
           <p className="font-regular py-10 text-center text-sm text-gray-500">Loading trips…</p>
         ) : dayGroups.length === 0 ? (
           <div className="rounded-3xl bg-gray-50 px-5 py-10 text-center">

@@ -1,5 +1,25 @@
-import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
+
+// Save the report and close presence together: neither can succeed on its own.
+export async function saveCompletedTrip(uid, trip) {
+  if (!uid) throw new Error('Please sign in again.');
+  const batch = writeBatch(db);
+  batch.set(doc(collection(db, 'trips')), {
+    driverId: uid,
+    routeId: trip.routeId ?? null,
+    direction: trip.direction ?? 'forward',
+    jeepneyNumber: trip.jeepneyNumber ?? null,
+    passengerCount: trip.passengerCount ?? 0,
+    durationSeconds: Math.max(0, Math.round(trip.durationSeconds ?? 0)),
+    durationMinutes: Math.round((trip.durationSeconds ?? 0) / 60),
+    endedAt: serverTimestamp(),
+  });
+  batch.set(doc(db, 'drivers', uid), {
+    isOnline: false, passengerCount: 0, updatedAt: serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+}
 
 // Closes out whatever trip a driver still has open, working from the driver
 // document itself rather than from screen state — so it can be called from
@@ -28,22 +48,5 @@ export async function endActiveTrip(uid) {
     ? Math.max(0, Math.round((Date.now() - startedAtMs) / 1000))
     : 0;
 
-  if (durationSeconds > 0) {
-    await addDoc(collection(db, 'trips'), {
-      driverId: uid,
-      routeId: data.routeId ?? null,
-      direction: data.direction ?? 'forward',
-      jeepneyNumber: data.jeepneyNumber ?? null,
-      passengerCount: data.passengerCount ?? 0,
-      durationSeconds,
-      durationMinutes: Math.round(durationSeconds / 60),
-      endedAt: serverTimestamp(),
-    });
-  }
-
-  await setDoc(
-    driverRef,
-    { isOnline: false, passengerCount: 0, updatedAt: serverTimestamp() },
-    { merge: true }
-  );
+  await saveCompletedTrip(uid, { ...data, durationSeconds });
 }

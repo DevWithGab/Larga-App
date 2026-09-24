@@ -28,6 +28,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withCircularSplash",
       [
         "expo-location",
         {
@@ -46,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/logo/logo-larga-short.png",
           "backgroundColor": "#FFFFFF",
           "imageWidth": 200
         }

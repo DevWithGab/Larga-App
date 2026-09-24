@@ -14,9 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import {
-  doc, setDoc, getDoc, addDoc, collection, query, where, onSnapshot, serverTimestamp, Timestamp,
+  doc, setDoc, getDoc, collection, query, where, onSnapshot, serverTimestamp, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { saveCompletedTrip } from '../../services/driverSession';
+import { toSortedTrips } from '../../utils/trips';
 import { useAuth } from '../../contexts/AuthContext';
 import JeepneyMap from '../../components/JeepneyMap';
 import RoutePickerModal from '../../components/RoutePickerModal';
@@ -89,6 +91,8 @@ function TripStat({ icon, label, value, danger = false }) {
 export default function DriverHomeScreen() {
   const { user, profile } = useAuth();
   const [isOnline, setIsOnline] = useState(false);
+  const [savingTrip, setSavingTrip] = useState(false);
+  const savingTripRef = useRef(false);
   const [elapsed, setElapsed] = useState(0);
   // Starts empty, not at some placeholder count — whatever this says is
   // broadcast to commuters as real seat availability the moment the driver
@@ -229,13 +233,12 @@ export default function DriverHomeScreen() {
     if (!user) return;
     const tripsQuery = query(
       collection(db, 'trips'),
-      where('driverId', '==', user.uid),
-      where('endedAt', '>=', startOfToday())
+      where('driverId', '==', user.uid)
     );
     const unsubscribe = onSnapshot(
       tripsQuery,
       (snapshot) => {
-        const trips = snapshot.docs.map((docSnap) => docSnap.data());
+        const trips = toSortedTrips(snapshot.docs).filter((trip) => trip.endedAt >= startOfToday());
         // Prefer durationSeconds; fall back to the whole minutes stored on
         // trips recorded before that field existed.
         const totalSeconds = trips.reduce(
@@ -394,47 +397,31 @@ export default function DriverHomeScreen() {
     }
   };
 
-  const goOffline = () => {
-    if (watcherRef.current) {
-      watcherRef.current.remove();
+  const goOffline = async () => {
+    if (savingTripRef.current) return;
+    savingTripRef.current = true;
+    setSavingTrip(true);
+    try {
+      await saveCompletedTrip(user?.uid, {
+        routeId, direction, jeepneyNumber: profile?.jeepneyNumber,
+        passengerCount, durationSeconds: elapsed,
+      });
+      watcherRef.current?.remove();
       watcherRef.current = null;
-    }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
+      setIsOnline(false);
+      setOnBreak(false);
+      setDriverLocation(null);
+      setPassengerCount(0);
+    } catch (error) {
+      Alert.alert('Trip could not be saved', error.code === 'permission-denied'
+        ? 'Trip reports are blocked by the database permissions. Your trip has been kept open. Please contact support and try again.'
+        : 'Your trip has been kept open. Check your connection, then tap End trip again.');
+    } finally {
+      savingTripRef.current = false;
+      setSavingTrip(false);
     }
-
-    // Record this as a real completed trip so the dashboard's stats row
-    // reflects what actually happened today, not a placeholder.
-    if (user && elapsed > 0) {
-      addDoc(collection(db, 'trips'), {
-        driverId: user.uid,
-        routeId,
-        direction,
-        jeepneyNumber: profile?.jeepneyNumber ?? null,
-        passengerCount,
-        // Seconds is what was actually measured — rounding to whole minutes at
-        // write time threw the real figure away, so anything under 30s was
-        // stored as a 0-minute trip that later rendered as "0m" with identical
-        // start and end times. durationMinutes is still written alongside it
-        // for trips recorded before this field existed to stay readable.
-        durationSeconds: elapsed,
-        durationMinutes: Math.round(elapsed / 60),
-        endedAt: serverTimestamp(),
-      }).catch((error) => console.warn('Failed to record trip:', error.message));
-    }
-
-    updateDriverStatus({ isOnline: false });
-    setIsOnline(false);
-    setOnBreak(false);
-    setDriverLocation(null);
-    // The trip is over, so the people who were on it are too. Without this the
-    // count survives into the next trip, and goOnline broadcasts it straight
-    // back to Firestore — commuters would be shown that many phantom
-    // passengers, and a wrong "Seats left", from the first second of a trip
-    // nobody has boarded yet. Safe to reset here: the trip document above
-    // already captured the real end-of-trip count.
-    setPassengerCount(0);
   };
 
   const toggleOnline = (value) => (value ? goOnline() : goOffline());
@@ -446,6 +433,7 @@ export default function DriverHomeScreen() {
   // stats. Not persisted to Firestore — closing the app during a break ends
   // up in the normal offline state, same as any other interrupted trip.
   const takeBreak = () => {
+    if (savingTripRef.current) return;
     if (watcherRef.current) {
       watcherRef.current.remove();
       watcherRef.current = null;
@@ -459,6 +447,7 @@ export default function DriverHomeScreen() {
   };
 
   const resumeTrip = async () => {
+    if (savingTripRef.current) return;
     try {
       const started = await startLocationWatch();
       if (!started) return;
@@ -479,6 +468,7 @@ export default function DriverHomeScreen() {
   };
 
   const adjustPassengers = (delta) => {
+    if (savingTripRef.current) return;
     const next = Math.min(capacity, Math.max(0, passengerCount + delta));
     // Already at 0 or at capacity — nothing changed, so don't re-broadcast the
     // same number to Firestore on every further tap.
@@ -672,6 +662,7 @@ export default function DriverHomeScreen() {
                   className={`flex-1 flex-row items-center justify-center py-5 rounded-full ${
                     onBreak ? 'bg-primary' : 'border-2 border-gray-200'
                   }`}
+                  disabled={savingTrip}
                   onPress={onBreak ? resumeTrip : takeBreak}
                   activeOpacity={0.9}
                 >
@@ -687,10 +678,12 @@ export default function DriverHomeScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-1 bg-black py-5 rounded-full items-center"
+                  disabled={savingTrip}
+                  accessibilityState={{ disabled: savingTrip, busy: savingTrip }}
                   onPress={goOffline}
                   activeOpacity={0.9}
                 >
-                  <Text className="font-accent text-white text-lg">End trip</Text>
+                  <Text className="font-accent text-white text-lg">{savingTrip ? 'Saving trip...' : 'End trip'}</Text>
                 </TouchableOpacity>
               </View>
             </View>

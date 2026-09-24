@@ -76,6 +76,36 @@ service cloud.firestore {
         ));
     }
 
+    match /trips/{tripId} {
+      function isDriver() {
+        return request.auth != null
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'driver';
+      }
+
+      allow read: if request.auth != null && resource.data.driverId == request.auth.uid;
+      allow create: if isDriver()
+        && request.resource.data.keys().hasAll([
+          'driverId', 'routeId', 'direction', 'jeepneyNumber', 'passengerCount',
+          'durationSeconds', 'durationMinutes', 'endedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'driverId', 'routeId', 'direction', 'jeepneyNumber', 'passengerCount',
+          'durationSeconds', 'durationMinutes', 'endedAt'
+        ])
+        && request.resource.data.driverId == request.auth.uid
+        && (request.resource.data.routeId == null || request.resource.data.routeId is string)
+        && request.resource.data.direction in ['forward', 'reverse']
+        && (request.resource.data.jeepneyNumber == null || request.resource.data.jeepneyNumber is string)
+        && request.resource.data.passengerCount is int
+        && request.resource.data.passengerCount >= 0
+        && request.resource.data.durationSeconds is int
+        && request.resource.data.durationSeconds >= 0
+        && request.resource.data.durationMinutes is int
+        && request.resource.data.durationMinutes >= 0
+        && request.resource.data.endedAt == request.time;
+      // Completed reports are immutable; clients cannot edit another trip or erase history.
+    }
+
     match /savedRoutes/{savedRouteId} {
       function signedIn() {
         return request.auth != null;

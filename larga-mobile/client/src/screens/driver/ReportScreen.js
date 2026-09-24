@@ -64,24 +64,32 @@ export default function ReportScreen() {
   const { user } = useAuth();
   const [tab, setTab] = useState('Today');
   const [trips, setTrips] = useState(null); // null while still loading
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    if (!user) return;
+    setLoadError('');
+    setTrips(null);
+    if (!user) { setTrips([]); return; }
     // Equality on a single field, so this needs no composite Firestore
     // index. Date filtering and ordering happen below, in memory.
     const tripsQuery = query(collection(db, 'trips'), where('driverId', '==', user.uid));
     const unsubscribe = onSnapshot(
       tripsQuery,
       (snapshot) => {
+        setLoadError('');
         setTrips(toSortedTrips(snapshot.docs));
       },
       (error) => {
         console.warn('Failed to load trip reports:', error.message);
+        setLoadError(error.code === 'permission-denied'
+          ? 'Trip reports are blocked by the database permissions. Please contact support.'
+          : 'Could not load your trips. Check your connection and try again.');
         setTrips([]);
       }
     );
     return unsubscribe;
-  }, [user]);
+  }, [user?.uid, retry]);
 
   const visibleTrips = useMemo(() => {
     if (!trips) return [];
@@ -125,7 +133,12 @@ export default function ReportScreen() {
         </View>
       </View>
 
-      {trips === null ? (
+      {loadError ? (
+        <View className="px-5 py-8 items-center">
+          <Text accessibilityRole="alert" className="font-regular text-sm text-red-600 text-center">{loadError}</Text>
+          <TouchableOpacity accessibilityRole="button" onPress={() => setRetry((value) => value + 1)} className="mt-4 px-6 py-3 bg-black rounded-full"><Text className="font-accent text-white">Try again</Text></TouchableOpacity>
+        </View>
+      ) : trips === null ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#f57c1f" />
         </View>
