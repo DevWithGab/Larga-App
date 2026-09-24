@@ -6,7 +6,7 @@ import { OSM_RASTER_STYLE } from '../constants/mapStyle';
 
 
 function buildMarkerElement(marker) {
-  const el = document.createElement('div');
+  const el = document.createElement(marker.variant === 'jeepney' ? 'button' : 'div');
 
   if (marker.variant === 'start' || marker.variant === 'end') {
     const isStart = marker.variant === 'start';
@@ -24,8 +24,12 @@ function buildMarkerElement(marker) {
     return el;
   }
 
-  el.className =
-    'w-10 h-10 rounded-full bg-white border-2 border-primary shadow-lg shadow-black/25 flex items-center justify-center cursor-pointer';
+  el.type = 'button';
+  el.className = 'jeepney-marker';
+  const halo = document.createElement('span');
+  halo.className = 'jeepney-marker-halo';
+  el.appendChild(halo);
+  applyStatus(el, marker);
 
   const img = document.createElement('img');
   img.src = '/larga-jeep/larga-jeep.png';
@@ -34,6 +38,14 @@ function buildMarkerElement(marker) {
   el.appendChild(img);
 
   return el;
+}
+
+function applyStatus(el, marker) {
+  if (marker.variant !== 'jeepney') return;
+  el.dataset.full = String(Boolean(marker.full));
+  el.dataset.selected = String(Boolean(marker.selected));
+  el.setAttribute('aria-pressed', String(Boolean(marker.selected)));
+  el.setAttribute('aria-label', `${marker.label || 'Jeepney'}${marker.full ? ', full' : ', online'}. View details`);
 }
 
 // The jeep illustration is drawn nose-up, so rotating it by the driver's
@@ -186,6 +198,7 @@ export default function JeepneyMap({ markers = [], center, focus, routeLine, onM
       if (existing) {
         existing.setLngLat(marker.coordinate);
         applyHeading(existing.getElement(), marker.heading);
+        applyStatus(existing.getElement(), marker);
         return;
       }
 

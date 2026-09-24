@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Animated, Easing } from 'react-native';
+import { View, Text, Animated, Easing, Pressable, AccessibilityInfo } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import { MAP_STYLE_URL, DEFAULT_CENTER, DEFAULT_ZOOM } from '../constants/map';
 import { useAnimatedCoordinate } from '../hooks/useAnimatedCoordinate';
@@ -70,10 +70,19 @@ function useJeepneyTrails(markers) {
 }
 
 
-function PulsingGlow({ size }) {
+function PulsingGlow({ size, color = GLOW_COLOR }) {
   const pulse = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((value) => { if (mounted) setReduceMotion(value); });
+    const listener = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => { mounted = false; listener.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) { pulse.setValue(0.4); return; }
     const loop = Animated.loop(
       Animated.timing(pulse, {
         toValue: 1,
@@ -84,7 +93,7 @@ function PulsingGlow({ size }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [pulse]);
+  }, [pulse, reduceMotion]);
 
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.9] });
   const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] });
@@ -97,7 +106,7 @@ function PulsingGlow({ size }) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: GLOW_COLOR,
+        backgroundColor: color,
         opacity,
         transform: [{ scale }],
       }}
@@ -106,7 +115,7 @@ function PulsingGlow({ size }) {
 }
 
 
-function AnimatedMarker({ marker }) {
+function AnimatedMarker({ marker, onMarkerPress }) {
   const displayed = useAnimatedCoordinate(marker.coordinate);
 
   const rotation = useHeading(marker.coordinate);
@@ -156,18 +165,28 @@ function AnimatedMarker({ marker }) {
   }
 
   const badgeSize = marker.selected ? 52 : 40;
+  const color = marker.full ? '#dc2626' : GLOW_COLOR;
   const glowSize = badgeSize * 1.5;
   const boxSize = glowSize + 12;
 
   return (
-    <Marker id={marker.id} lngLat={displayed}>
-      <View style={{ width: boxSize, height: boxSize, alignItems: 'center', justifyContent: 'center' }}>
-        <PulsingGlow size={glowSize} />
+    <Marker id={marker.id} lngLat={displayed} selected={Boolean(marker.selected)} onPress={onMarkerPress ? () => onMarkerPress(marker.id) : undefined}>
+      <Pressable
+        disabled={!onMarkerPress}
+        onPress={() => onMarkerPress?.(marker.id)}
+        accessibilityRole={onMarkerPress ? 'button' : 'image'}
+        accessibilityLabel={`${marker.label || 'Jeepney'}, ${marker.full ? 'full' : 'online'}${onMarkerPress ? '. View details' : ''}`}
+        accessibilityState={{ selected: Boolean(marker.selected) }}
+        style={{ width: boxSize, height: boxSize, alignItems: 'center', justifyContent: 'center' }}>
+        <PulsingGlow size={glowSize} color={color} />
         <View
-          className="items-center justify-center rounded-full bg-white"
+          className="items-center justify-center rounded-full"
           style={{
             width: badgeSize,
             height: badgeSize,
+            backgroundColor: marker.full ? '#fee2e2' : '#ffedd5',
+            borderWidth: 2,
+            borderColor: color,
             shadowColor: '#000',
             shadowOpacity: 0.25,
             shadowRadius: 4,
@@ -191,7 +210,7 @@ function AnimatedMarker({ marker }) {
             <JeepneyIcon size={marker.selected ? 40 : 30} />
           </Animated.View>
         </View>
-      </View>
+      </Pressable>
     </Marker>
   );
 }
@@ -214,6 +233,7 @@ export default function JeepneyMap({
   bounds,
   style,
   followCamera = true,
+  onMarkerPress,
 }) {
   const cameraCenter = center ?? markers[0]?.coordinate ?? DEFAULT_CENTER;
   const trails = useJeepneyTrails(markers);
@@ -288,7 +308,7 @@ export default function JeepneyMap({
         </GeoJSONSource>
 
         {markers.map((marker) => (
-          <AnimatedMarker key={marker.id} marker={marker} />
+          <AnimatedMarker key={marker.id} marker={marker} onMarkerPress={onMarkerPress} />
         ))}
       </Map>
     </View>

@@ -534,7 +534,7 @@ export default function DriverHomeScreen() {
             style={{ flex: 1 }}
             markers={
               driverLocation
-                ? [{ id: user?.uid ?? 'me', coordinate: driverLocation, variant: 'jeepney', selected: true }]
+                ? [{ id: user?.uid ?? 'me', coordinate: driverLocation, variant: 'jeepney', selected: true, full: isFull }]
                 : []
             }
             center={driverLocation ?? undefined}

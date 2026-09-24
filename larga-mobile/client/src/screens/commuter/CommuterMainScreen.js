@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { db } from '../../services/firebase';
 import JeepneyMap from '../../components/JeepneyMap';
+import JeepneyDetails from '../../components/JeepneyDetails';
+import { seatAvailability } from '../../utils/seatAvailability';
 import LocationPrompt from '../../components/LocationPrompt';
 import MapLegend from '../../components/MapLegend';
 import JeepneyIcon from '../../components/JeepneyIcon';
@@ -29,6 +32,12 @@ export default function CommuterMainScreen({ navigation, route }) {
   const [driverError, setDriverError] = useState('');
   const [myLocation, setMyLocation] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const [selectedId, setSelectedId] = useState(null);
+  useFocusEffect(useCallback(() => {
+    if (!selectedId) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => { setSelectedId(null); return true; });
+    return () => listener.remove();
+  }, [selectedId]));
 
 
   useEffect(() => {
@@ -92,12 +101,20 @@ export default function CommuterMainScreen({ navigation, route }) {
       (activeFilter === 'all' || driver.routeId === activeFilter)
   );
 
+  const selectedDriver = visibleDrivers.find((driver) => driver.id === selectedId);
+  useEffect(() => {
+    if (selectedId && !selectedDriver) setSelectedId(null);
+  }, [selectedId, selectedDriver]);
+
   const markers = [
     ...(myLocation ? [{ id: 'me', coordinate: myLocation, variant: 'you' }] : []),
     ...visibleDrivers.map((driver) => ({
       id: driver.id,
       coordinate: [driver.location.longitude, driver.location.latitude],
       variant: 'jeepney',
+      full: seatAvailability(driver).full,
+      selected: driver.id === selectedId,
+      label: driver.jeepneyNumber,
     })),
   ];
 
@@ -154,7 +171,7 @@ export default function CommuterMainScreen({ navigation, route }) {
 
       {/* Map + nearby jeepneys sheet */}
       <View className="flex-1">
-        <JeepneyMap markers={markers} center={myLocation ?? DEFAULT_CENTER} />
+        <JeepneyMap markers={markers} center={myLocation ?? DEFAULT_CENTER} onMarkerPress={setSelectedId} />
         <MapLegend />
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Turn on location" onPress={() => setLocationPrompt((value) => value + 1)} className="absolute right-4 top-4 bg-white rounded-full p-3">
           <Ionicons name="locate-outline" size={24} color="#111" />
@@ -168,9 +185,10 @@ export default function CommuterMainScreen({ navigation, route }) {
             shadowRadius: 12,
             shadowOffset: { width: 0, height: -4 },
             elevation: 12,
-            maxHeight: '55%',
+            maxHeight: selectedDriver ? '70%' : '55%',
           }}
         >
+          {selectedDriver ? <JeepneyDetails driver={selectedDriver} onClose={() => setSelectedId(null)} onTrack={() => navigation.navigate('Tracking', { driverId: selectedDriver.id })} /> : <>
           <View className="flex-row items-center justify-between mb-4">
             <Text className="font-heading text-lg text-black">Nearby jeepneys</Text>
             <View className="bg-orange-50 rounded-full px-3 py-1">
@@ -186,10 +204,7 @@ export default function CommuterMainScreen({ navigation, route }) {
             <ScrollView showsVerticalScrollIndicator={false}>
               {visibleDrivers.map((driver) => {
                 const route = getRoute(driver.routeId);
-                const seatsLeft =
-                  typeof driver.seatCapacity === 'number'
-                    ? Math.max(0, driver.seatCapacity - (driver.passengerCount ?? 0))
-                    : null;
+                const seatsLeft = seatAvailability(driver).left;
                 const etaMinutes = myLocation
                   ? estimateEtaMinutes(
                       distanceMeters({ latitude: myLocation[1], longitude: myLocation[0] }, driver.location)
@@ -199,7 +214,7 @@ export default function CommuterMainScreen({ navigation, route }) {
                   <TouchableOpacity
                     key={driver.id}
                     className="flex-row items-center py-3 border-b border-gray-100"
-                    onPress={() => navigation.navigate('Tracking', { driverId: driver.id })}
+                    onPress={() => setSelectedId(driver.id)}
                     activeOpacity={0.8}
                   >
                     <View className="w-11 h-11 rounded-full bg-orange-50 items-center justify-center mr-3">
@@ -227,6 +242,7 @@ export default function CommuterMainScreen({ navigation, route }) {
               })}
             </ScrollView>
           )}
+          </>}
         </View>
       </View>
     </SafeAreaView>

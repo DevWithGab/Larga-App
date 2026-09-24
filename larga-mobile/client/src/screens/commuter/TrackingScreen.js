@@ -1,3 +1,4 @@
+import { seatAvailability } from '../../utils/seatAvailability';
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -119,10 +120,7 @@ export default function TrackingScreen({ navigation, route }) {
     : null;
   const coordinate = isLive ? lastKnownCoordinate : null;
   const driverRoute = getRoute(driver?.routeId);
-  const seatsLeft =
-    isLive && typeof driver?.seatCapacity === 'number'
-      ? Math.max(0, driver.seatCapacity - (driver.passengerCount ?? 0))
-      : null;
+  const seatsLeft = isLive ? seatAvailability(driver).left : null;
   const etaMinutes =
     isLive && myLocation && driver?.location
       ? estimateEtaMinutes(distanceMeters({ latitude: myLocation[1], longitude: myLocation[0] }, driver.location))
@@ -176,7 +174,7 @@ export default function TrackingScreen({ navigation, route }) {
       <View className="flex-1">
         <JeepneyMap
           markers={[
-            ...(coordinate ? [{ id: driverId, coordinate, variant: 'jeepney', selected: true }] : []),
+            ...(coordinate ? [{ id: driverId, coordinate, variant: 'jeepney', selected: true, full: seatsLeft === 0 }] : []),
             ...(myLocation ? [{ id: 'me', coordinate: myLocation, variant: 'you' }] : []),
           ]}
           center={coordinate ?? lastKnownCoordinate ?? myLocation ?? undefined}

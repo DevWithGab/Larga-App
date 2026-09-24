@@ -15,7 +15,8 @@ export default function MapLegend() {
       <div id="map-legend-items" className={`${expanded ? 'block' : 'hidden'} md:block`}>
         <ul className="font-regular space-y-2 text-[11px] text-gray-600">
           <li className="flex items-center gap-2"><span aria-hidden="true" className="w-6 border-t-4 border-dashed border-[#f57c1f]" />Route path</li>
-          <li className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-primary bg-white"><img src="/larga-jeep/larga-jeep.png" alt="" className="h-5 w-5 object-contain" /></span>Jeepney (online)</li>
+          <li className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-primary bg-orange-100"><img src="/larga-jeep/larga-jeep.png" alt="" className="h-5 w-5 object-contain" /></span>Online jeepney</li>
+          <li className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-red-600 bg-red-100"><img src="/larga-jeep/larga-jeep.png" alt="" className="h-5 w-5 object-contain" /></span>Full jeepney</li>
           <li className="flex items-center gap-2"><MapPin aria-hidden="true" size={24} fill="#f57c1f" stroke="white" />Origin / Start</li>
           <li className="flex items-center gap-2"><MapPin aria-hidden="true" size={24} fill="#ef4444" stroke="white" />Destination / End</li>
           <li className="flex items-center gap-2"><span aria-hidden="true" className="flex w-6 justify-center"><span className="h-3.5 w-3.5 rounded-full border-2 border-white bg-blue-500 shadow" /></span>Your location</li>

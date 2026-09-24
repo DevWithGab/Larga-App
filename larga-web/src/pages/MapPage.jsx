@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Crosshair, Search } from 'lucide-react';
 import JeepneyMap from '../components/JeepneyMap';
+import JeepneyDetails from '../components/JeepneyDetails';
+import { seatAvailability } from '../utils/seatAvailability';
 import LocationPrompt from '../components/LocationPrompt';
 import MapLegend from '../components/MapLegend';
 import { useOnlineDrivers } from '../hooks/useOnlineDrivers';
@@ -28,6 +30,7 @@ export default function MapPage() {
   const [direction, setDirection] = useState('forward');
   const [search, setSearch] = useState('');
   const [focus, setFocus] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
   const [collapsed, setCollapsed] = useState(false);
 
@@ -86,6 +89,11 @@ export default function MapPage() {
     });
   }, [liveDrivers, activeFilter, search]);
 
+  const selectedDriver = visibleDrivers.find((driver) => driver.id === selectedId);
+  useEffect(() => {
+    if (selectedId && !selectedDriver) setSelectedId(null);
+  }, [selectedId, selectedDriver]);
+
   const markers = useMemo(
     () => [
       ...(myLocation ? [{ id: 'me', coordinate: myLocation, variant: 'you' }] : []),
@@ -98,12 +106,20 @@ export default function MapPage() {
         coordinate: [driver.location.longitude, driver.location.latitude],
         variant: 'jeepney',
         heading: driver.heading,
+        full: seatAvailability(driver).full,
+        selected: driver.id === selectedId,
+        label: driver.jeepneyNumber,
       })),
     ],
-    [myLocation, visibleDrivers, routeLine]
+    [myLocation, visibleDrivers, routeLine, selectedId]
   );
 
   const focusOn = (coordinate) => setFocus({ coordinate, key: Date.now() });
+  const selectDriver = (driver) => {
+    setSelectedId(driver.id);
+    setCollapsed(false);
+    focusOn([driver.location.longitude, driver.location.latitude]);
+  };
 
   return (
     // The map is the page: it fills the pane and the controls float over it,
@@ -118,7 +134,7 @@ export default function MapPage() {
           routeLine={routeLine}
           onMarkerClick={(id) => {
             const driver = visibleDrivers.find((d) => d.id === id);
-            if (driver) focusOn([driver.location.longitude, driver.location.latitude]);
+            if (driver) selectDriver(driver);
           }}
         />
 
@@ -177,7 +193,7 @@ export default function MapPage() {
         )}
 
         <div
-          style={sheetStyle}
+          style={selectedDriver ? { ...sheetStyle, '--sheet-h': 'min(440px, 60%)' } : sheetStyle}
           className={`absolute inset-x-0 bottom-0 z-20 flex h-[var(--sheet-h)] flex-col overflow-hidden
                       rounded-t-3xl bg-white px-5 pb-6 pt-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]
                       md:inset-auto md:bottom-4 md:left-4 md:h-auto md:w-80 md:rounded-3xl
@@ -196,15 +212,16 @@ export default function MapPage() {
               beside the map instead of on top of it, so there's nothing to get
               out of the way of. `touch-none` stops a drag from scrolling the
               page underneath instead of resizing. */}
-          <button
+          {!selectedDriver && <button
             type="button"
             {...handleProps}
             className="group mx-auto mb-1 flex h-7 w-24 shrink-0 cursor-grab touch-none
                        items-center justify-center active:cursor-grabbing md:hidden"
           >
             <span className="h-1.5 w-10 rounded-full bg-gray-300 transition-colors group-hover:bg-gray-400" />
-          </button>
+          </button>}
 
+          {selectedDriver ? <JeepneyDetails driver={selectedDriver} onClose={() => setSelectedId(null)} /> : <>
           <div className={`mb-4 flex shrink-0 items-center justify-between ${collapsed ? 'md:mb-0' : ''}`}>
             <h1 className="font-heading text-lg text-black">Nearby jeepneys</h1>
             <div className="flex items-center gap-2">
@@ -249,10 +266,7 @@ export default function MapPage() {
             <ul className="min-h-0 flex-1 overflow-y-auto">
               {visibleDrivers.map((driver) => {
                 const route = getRoute(driver.routeId);
-                const seatsLeft =
-                  typeof driver.seatCapacity === 'number'
-                    ? Math.max(0, driver.seatCapacity - (driver.passengerCount ?? 0))
-                    : null;
+                const seatsLeft = seatAvailability(driver).left;
                 const etaMinutes = myLocation
                   ? estimateEtaMinutes(
                       distanceMeters(
@@ -266,7 +280,7 @@ export default function MapPage() {
                   <li key={driver.id}>
                     <button
                       type="button"
-                      onClick={() => focusOn([driver.location.longitude, driver.location.latitude])}
+                      onClick={() => selectDriver(driver)}
                       className="flex w-full items-center border-b border-gray-100 py-3 text-left
                                  hover:bg-gray-50"
                     >
@@ -298,6 +312,7 @@ export default function MapPage() {
             </ul>
           )}
           </div>
+          </>}
         </div>
       </div>
     </div>
