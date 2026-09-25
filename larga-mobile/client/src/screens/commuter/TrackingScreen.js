@@ -212,8 +212,8 @@ export default function TrackingScreen({ navigation, route }) {
           }}
         >
           <View className="flex-row items-center mb-4">
-            <View className="w-11 h-11 rounded-full bg-orange-50 items-center justify-center mr-3">
-              <JeepneyIcon size={30} />
+            <View className="w-11 h-11 items-center justify-center mr-3">
+              <JeepneyIcon size={44} />
             </View>
             <View className="flex-1">
               <Text className="font-heading text-lg text-black">

@@ -180,18 +180,10 @@ function AnimatedMarker({ marker, onMarkerPress }) {
         style={{ width: boxSize, height: boxSize, alignItems: 'center', justifyContent: 'center' }}>
         <PulsingGlow size={glowSize} color={color} />
         <View
-          className="items-center justify-center rounded-full"
+          className="items-center justify-center"
           style={{
             width: badgeSize,
             height: badgeSize,
-            backgroundColor: marker.full ? '#fee2e2' : '#ffedd5',
-            borderWidth: 2,
-            borderColor: color,
-            shadowColor: '#000',
-            shadowOpacity: 0.25,
-            shadowRadius: 4,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 6,
           }}
         >
           <Animated.View
@@ -207,7 +199,7 @@ function AnimatedMarker({ marker, onMarkerPress }) {
               ],
             }}
           >
-            <JeepneyIcon size={marker.selected ? 40 : 30} />
+            <JeepneyIcon size={badgeSize} />
           </Animated.View>
         </View>
       </Pressable>

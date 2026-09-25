@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,8 @@ import LocationPrompt from '../../components/LocationPrompt';
 import MapLegend from '../../components/MapLegend';
 import JeepneyIcon from '../../components/JeepneyIcon';
 import { DEFAULT_CENTER } from '../../constants/map';
-import { ROUTES, getRoute, routeLabel, routePairLabel } from '../../constants/routes';
+import { ROUTES, getRoute, getRouteEndpoints, routeLabel, routePairLabel } from '../../constants/routes';
+import { fetchRoutePath } from '../../utils/osrm';
 import { distanceMeters, estimateEtaMinutes } from '../../utils/geo';
 import { isDriverLive } from '../../utils/driverPresence';
 
@@ -28,6 +29,8 @@ export default function CommuterMainScreen({ navigation, route }) {
   const [locationPrompt, setLocationPrompt] = useState(0);
   const onLocationReady = useCallback(() => setLocationEnabled(true), []);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [direction, setDirection] = useState('forward');
+  const [routeLine, setRouteLine] = useState(null);
   const [onlineDrivers, setOnlineDrivers] = useState([]);
   const [driverError, setDriverError] = useState('');
   const [myLocation, setMyLocation] = useState(null);
@@ -47,8 +50,35 @@ export default function CommuterMainScreen({ navigation, route }) {
 
 
   useEffect(() => {
-    if (route?.params?.filter) setActiveFilter(route.params.filter);
-  }, [route?.params?.filter]);
+    if (route?.params?.filter) {
+      setActiveFilter(route.params.filter);
+      setDirection(route.params.direction === 'reverse' ? 'reverse' : 'forward');
+    }
+  }, [route?.params?.filter, route?.params?.direction]);
+
+  const selectedRoute = getRoute(activeFilter);
+  const endpoints = useMemo(() => {
+    const points = getRouteEndpoints(selectedRoute);
+    return points && direction === 'reverse' ? [...points].reverse() : points;
+  }, [selectedRoute, direction]);
+
+  useEffect(() => {
+    // Show the route immediately, even without online drivers or routing service access.
+    setRouteLine(endpoints);
+    if (!endpoints) return;
+    let cancelled = false;
+    fetchRoutePath(endpoints[0], endpoints[1]).then((path) => {
+      if (!cancelled && path) setRouteLine(path);
+    });
+    return () => { cancelled = true; };
+  }, [endpoints]);
+
+  const bounds = useMemo(() => {
+    if (!routeLine?.length) return undefined;
+    const lngs = routeLine.map(([lng]) => lng);
+    const lats = routeLine.map(([, lat]) => lat);
+    return [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
+  }, [routeLine]);
 
 
   useEffect(() => {
@@ -108,6 +138,10 @@ export default function CommuterMainScreen({ navigation, route }) {
 
   const markers = [
     ...(myLocation ? [{ id: 'me', coordinate: myLocation, variant: 'you' }] : []),
+    ...(endpoints ? [
+      { id: 'route-start', coordinate: endpoints[0], variant: 'endpoint', label: `Start: ${selectedRoute.towns[direction === 'reverse' ? 1 : 0]}` },
+      { id: 'route-end', coordinate: endpoints[1], variant: 'endpoint', label: `End: ${selectedRoute.towns[direction === 'reverse' ? 0 : 1]}` },
+    ] : []),
     ...visibleDrivers.map((driver) => ({
       id: driver.id,
       coordinate: [driver.location.longitude, driver.location.latitude],
@@ -155,7 +189,9 @@ export default function CommuterMainScreen({ navigation, route }) {
           return (
             <TouchableOpacity
               key={id}
-              onPress={() => setActiveFilter(id)}
+              onPress={() => { setActiveFilter(id); setDirection('forward'); }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
               className={`px-4 py-2 rounded-full border ${
                 isActive ? 'bg-black border-black' : 'bg-white border-gray-200'
               }`}
@@ -171,7 +207,13 @@ export default function CommuterMainScreen({ navigation, route }) {
 
       {/* Map + nearby jeepneys sheet */}
       <View className="flex-1">
-        <JeepneyMap markers={markers} center={myLocation ?? DEFAULT_CENTER} onMarkerPress={setSelectedId} />
+        <JeepneyMap
+          markers={markers}
+          center={myLocation ?? DEFAULT_CENTER}
+          routeLine={routeLine}
+          bounds={bounds}
+          onMarkerPress={setSelectedId}
+        />
         <MapLegend />
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Turn on location" onPress={() => setLocationPrompt((value) => value + 1)} className="absolute right-4 top-4 bg-white rounded-full p-3">
           <Ionicons name="locate-outline" size={24} color="#111" />
@@ -217,8 +259,8 @@ export default function CommuterMainScreen({ navigation, route }) {
                     onPress={() => setSelectedId(driver.id)}
                     activeOpacity={0.8}
                   >
-                    <View className="w-11 h-11 rounded-full bg-orange-50 items-center justify-center mr-3">
-                      <JeepneyIcon size={30} />
+                    <View className="w-11 h-11 items-center justify-center mr-3">
+                      <JeepneyIcon size={44} />
                     </View>
                     <View className="flex-1">
                       <Text className="font-accent text-sm text-black">

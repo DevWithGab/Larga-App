@@ -19,8 +19,8 @@ export default function MapLegend() {
     {expanded && <View style={{ gap: 9 }}>
       {row(<View style={{ width: 24, borderTopWidth: 3, borderColor: '#f57c1f', borderStyle: 'dashed' }} />, 'Route path')}
       {row(<View style={{ width: 24, height: 4, backgroundColor: '#f57c1f' }} />, 'Jeepney trail')}
-      {row(<View style={{ borderRadius: 14, borderWidth: 2, borderColor: '#f57c1f', backgroundColor: '#ffedd5' }}><JeepneyIcon size={22} /></View>, 'Online jeepney')}
-      {row(<View style={{ borderRadius: 14, borderWidth: 2, borderColor: '#dc2626', backgroundColor: '#fee2e2' }}><JeepneyIcon size={22} /></View>, 'Full jeepney')}
+      {row(<View><JeepneyIcon size={26} /><View style={{ position: 'absolute', right: -2, bottom: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: '#f57c1f' }} /></View>, 'Online jeepney')}
+      {row(<View><JeepneyIcon size={26} /><View style={{ position: 'absolute', right: -2, bottom: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: '#dc2626' }} /></View>, 'Full jeepney')}
       {row(<View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#000', borderWidth: 2, borderColor: '#fff' }} />, 'Start / End town')}
       {row(<RoleAvatar role="commuter" size={24} />, 'Your location')}
       <Text className="font-regular text-xs text-gray-500">Offline jeepneys are hidden.</Text>

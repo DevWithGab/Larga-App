@@ -31,8 +31,8 @@ function AlertCard({ alertId, alert }) {
 
   return (
     <li className="mb-4 flex items-center rounded-3xl border border-gray-200 p-4">
-      <span className="mr-3 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50">
-        <img src="/larga-jeep/larga-jeep.png" alt="" className="h-9 w-9 object-contain" />
+      <span className="mr-3 flex h-14 w-14 shrink-0 items-center justify-center">
+        <img src="/larga-jeep/larga-jeep.png" alt="" className="h-14 w-14 object-contain" />
       </span>
 
       <div className="min-w-0 flex-1">

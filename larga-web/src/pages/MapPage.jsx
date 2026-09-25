@@ -284,9 +284,8 @@ export default function MapPage() {
                       className="flex w-full items-center border-b border-gray-100 py-3 text-left
                                  hover:bg-gray-50"
                     >
-                      <span className="mr-3 flex h-11 w-11 shrink-0 items-center justify-center
-                                       rounded-full bg-orange-50">
-                        <img src="/larga-jeep/larga-jeep.png" alt="" className="h-7 w-7 object-contain" />
+                      <span className="mr-3 flex h-11 w-11 shrink-0 items-center justify-center">
+                        <img src="/larga-jeep/larga-jeep.png" alt="" className="h-11 w-11 object-contain" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="font-accent block truncate text-sm text-black">

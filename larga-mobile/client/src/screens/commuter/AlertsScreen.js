@@ -38,8 +38,8 @@ function AlertCard({ alertId, alert, onPress }) {
   return (
     <View className="flex-row items-center border border-gray-200 rounded-3xl p-4 mb-4">
       <TouchableOpacity className="flex-row items-center flex-1 pr-2" onPress={onPress} activeOpacity={0.85}>
-        <View className="w-14 h-14 rounded-2xl bg-orange-50 items-center justify-center mr-3">
-          <JeepneyIcon size={36} />
+        <View className="w-14 h-14 items-center justify-center mr-3">
+          <JeepneyIcon size={56} />
         </View>
         <View className="flex-1">
           <Text className="font-heading text-base text-black">
