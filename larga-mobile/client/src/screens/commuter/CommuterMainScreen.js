@@ -146,6 +146,7 @@ export default function CommuterMainScreen({ navigation, route }) {
       id: driver.id,
       coordinate: [driver.location.longitude, driver.location.latitude],
       variant: 'jeepney',
+      driver,
       full: seatAvailability(driver).full,
       selected: driver.id === selectedId,
       label: driver.jeepneyNumber,

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getRoute, routeLabel } from '../constants/routes';
 import { seatAvailability } from '../utils/seatAvailability';
+import JeepneySignal from './JeepneySignal';
 
 export default function JeepneyDetails({ driver, onClose, onTrack }) {
   const route = getRoute(driver.routeId);
@@ -13,6 +14,7 @@ export default function JeepneyDetails({ driver, onClose, onTrack }) {
     </TouchableOpacity>
     <Text accessibilityLiveRegion="polite" className={`font-accent text-xs ${seats.full ? 'text-red-600' : 'text-primary'}`}>{seats.full ? 'Full · No seats available' : 'On the road'}</Text>
     <Text accessibilityRole="header" className="font-heading text-2xl text-black mt-1">{driver.jeepneyNumber || 'Plate unavailable'}</Text>
+    <JeepneySignal driver={driver} />
     <Text className="font-regular text-sm text-gray-600 mt-1">{route ? `${route.code} · ${routeLabel(route, driver.direction)}` : 'Route not set'}</Text>
     <View className="flex-row border-y border-gray-200 py-4 my-4">
       <View className="flex-1 pr-3"><Text className="font-regular text-xs text-gray-500">Seats left</Text><Text className={`font-heading text-3xl ${seats.full ? 'text-red-600' : 'text-black'}`}>{seats.left ?? '—'}</Text><Text className="font-regular text-xs text-gray-500">{seats.capacity ? `of ${seats.capacity} seats` : 'Capacity unavailable'}</Text></View>

@@ -6,6 +6,7 @@ import { useAnimatedCoordinate } from '../hooks/useAnimatedCoordinate';
 import { useHeading } from '../hooks/useHeading';
 import JeepneyIcon from './JeepneyIcon';
 import RoleAvatar from './RoleAvatar';
+import { driverSignal } from '../utils/driverSignal';
 
 const GLOW_COLOR = '#f57c1f'; // brand primary orange
 const TRAIL_COLOR = '#f57c1f';
@@ -115,7 +116,7 @@ function PulsingGlow({ size, color = GLOW_COLOR }) {
 }
 
 
-function AnimatedMarker({ marker, onMarkerPress }) {
+function AnimatedMarker({ marker, onMarkerPress, now }) {
   const displayed = useAnimatedCoordinate(marker.coordinate);
 
   const rotation = useHeading(marker.coordinate);
@@ -167,7 +168,10 @@ function AnimatedMarker({ marker, onMarkerPress }) {
   const badgeSize = marker.selected ? 52 : 40;
   const color = marker.full ? '#dc2626' : GLOW_COLOR;
   const glowSize = badgeSize * 1.5;
-  const boxSize = glowSize + 12;
+  const signal = marker.driver?.isOnline ? driverSignal(marker.driver, now) : null;
+  // Symmetric space keeps the jeepney anchored to its GPS coordinate and
+  // keeps the badge inside the native marker's bounds (including Android).
+  const boxSize = glowSize + 48;
 
   return (
     <Marker id={marker.id} lngLat={displayed} selected={Boolean(marker.selected)} onPress={onMarkerPress ? () => onMarkerPress(marker.id) : undefined}>
@@ -175,7 +179,7 @@ function AnimatedMarker({ marker, onMarkerPress }) {
         disabled={!onMarkerPress}
         onPress={() => onMarkerPress?.(marker.id)}
         accessibilityRole={onMarkerPress ? 'button' : 'image'}
-        accessibilityLabel={`${marker.label || 'Jeepney'}, ${marker.full ? 'full' : 'online'}${onMarkerPress ? '. View details' : ''}`}
+        accessibilityLabel={`${marker.label || 'Jeepney'}${marker.full ? ', full' : ''}${signal ? `, online, ${signal.label}, estimated from driver check-ins` : ''}${onMarkerPress ? '. View details' : ''}`}
         accessibilityState={{ selected: Boolean(marker.selected) }}
         style={{ width: boxSize, height: boxSize, alignItems: 'center', justifyContent: 'center' }}>
         <PulsingGlow size={glowSize} color={color} />
@@ -202,6 +206,24 @@ function AnimatedMarker({ marker, onMarkerPress }) {
             <JeepneyIcon size={badgeSize} />
           </Animated.View>
         </View>
+        {signal && (
+          <View pointerEvents="none" accessible={false} style={{
+            position: 'absolute', top: (boxSize - badgeSize) / 2 - 30,
+            flexDirection: 'row', alignItems: 'flex-end', gap: 2,
+            paddingHorizontal: 6, paddingVertical: 5, borderRadius: 8,
+            borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff',
+            shadowColor: '#0f172a', shadowOpacity: 0.15, shadowRadius: 3,
+            shadowOffset: { width: 0, height: 2 }, elevation: 3,
+          }}>
+            {[1, 2, 3, 4].map((bar) => (
+              <View key={bar} style={{ width: 3, height: 3 + bar * 3, borderRadius: 1,
+                backgroundColor: bar <= signal.bars ? signal.color : '#cbd5e1' }} />
+            ))}
+            {signal.bars === 0 && <View style={{ position: 'absolute', width: 22, height: 2,
+              left: 4, top: 12, borderRadius: 1, backgroundColor: signal.color,
+              transform: [{ rotate: '-40deg' }] }} />}
+          </View>
+        )}
       </Pressable>
     </Marker>
   );
@@ -227,6 +249,11 @@ export default function JeepneyMap({
   followCamera = true,
   onMarkerPress,
 }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
   const cameraCenter = center ?? markers[0]?.coordinate ?? DEFAULT_CENTER;
   const trails = useJeepneyTrails(markers);
   const routeGeoJSON = routeLineToGeoJSON(routeLine);
@@ -300,7 +327,7 @@ export default function JeepneyMap({
         </GeoJSONSource>
 
         {markers.map((marker) => (
-          <AnimatedMarker key={marker.id} marker={marker} onMarkerPress={onMarkerPress} />
+          <AnimatedMarker key={marker.id} marker={marker} onMarkerPress={onMarkerPress} now={now} />
         ))}
       </Map>
     </View>

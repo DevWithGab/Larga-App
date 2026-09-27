@@ -91,6 +91,18 @@ function TripStat({ icon, label, value, danger = false }) {
 export default function DriverHomeScreen() {
   const { user, profile } = useAuth();
   const [isOnline, setIsOnline] = useState(false);
+  const [signalDriver, setSignalDriver] = useState(null);
+
+  useEffect(() => {
+    setSignalDriver(null);
+    if (!user?.uid || !isOnline) return;
+    return onSnapshot(doc(db, 'drivers', user.uid), { includeMetadataChanges: true }, (snapshot) => {
+      // Pending local writes do not confirm a successful server check-in.
+      if (!snapshot.metadata.hasPendingWrites) {
+        setSignalDriver(snapshot.exists() ? snapshot.data() : null);
+      }
+    }, () => setSignalDriver(null));
+  }, [user?.uid, isOnline]);
   const [savingTrip, setSavingTrip] = useState(false);
   const savingTripRef = useRef(false);
   const [elapsed, setElapsed] = useState(0);
@@ -524,7 +536,7 @@ export default function DriverHomeScreen() {
             style={{ flex: 1 }}
             markers={
               driverLocation
-                ? [{ id: user?.uid ?? 'me', coordinate: driverLocation, variant: 'jeepney', selected: true, full: isFull }]
+                ? [{ id: user?.uid ?? 'me', coordinate: driverLocation, variant: 'jeepney', driver: { ...signalDriver, isOnline }, selected: true, full: isFull }]
                 : []
             }
             center={driverLocation ?? undefined}

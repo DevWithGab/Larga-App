@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { MaplibreMap, Marker, NavigationControl } from '../services/maplibre';
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../constants/map';
 import { OSM_RASTER_STYLE } from '../constants/mapStyle';
+import { driverSignal } from '../utils/driverSignal';
 
 
 
@@ -29,13 +30,23 @@ function buildMarkerElement(marker) {
   const halo = document.createElement('span');
   halo.className = 'jeepney-marker-halo';
   el.appendChild(halo);
-  applyStatus(el, marker);
 
   const img = document.createElement('img');
   img.src = '/larga-jeep/larga-jeep.png';
   img.alt = 'Jeepney';
   img.className = 'w-7 h-7 object-contain';
   el.appendChild(img);
+
+  const signal = document.createElement('span');
+  signal.className = 'jeepney-marker-signal';
+  signal.setAttribute('aria-hidden', 'true');
+  for (let bar = 1; bar <= 4; bar += 1) {
+    const segment = document.createElement('span');
+    segment.style.height = `${3 + bar * 3}px`;
+    signal.appendChild(segment);
+  }
+  el.appendChild(signal);
+  applyStatus(el, marker);
 
   return el;
 }
@@ -45,7 +56,19 @@ function applyStatus(el, marker) {
   el.dataset.full = String(Boolean(marker.full));
   el.dataset.selected = String(Boolean(marker.selected));
   el.setAttribute('aria-pressed', String(Boolean(marker.selected)));
-  el.setAttribute('aria-label', `${marker.label || 'Jeepney'}${marker.full ? ', full' : ', online'}. View details`);
+  const signal = marker.driver?.isOnline ? driverSignal(marker.driver) : null;
+  const badge = el.querySelector('.jeepney-marker-signal');
+  badge.hidden = !signal;
+  if (signal) {
+    badge.style.color = signal.color;
+    badge.dataset.empty = String(signal.bars === 0);
+    Array.from(badge.children).forEach((bar, index) => {
+      bar.style.backgroundColor = index < signal.bars ? signal.color : '#cbd5e1';
+    });
+  }
+  const status = `${marker.label || 'Jeepney'}${marker.full ? ', full' : ''}${signal ? `, online, ${signal.label.toLowerCase()} (estimated from driver check-ins)` : ''}`;
+  el.title = status;
+  el.setAttribute('aria-label', `${status}. View details`);
 }
 
 // The jeep illustration is drawn nose-up, so rotating it by the driver's
@@ -90,6 +113,19 @@ export default function JeepneyMap({ markers = [], center, focus, routeLine, onM
   // render's props existed.
   const routeLineRef = useRef(routeLine);
   routeLineRef.current = routeLine;
+
+  // Refresh signal age even when no new location snapshot arrives.
+  const currentMarkersRef = useRef(markers);
+  currentMarkersRef.current = markers;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      currentMarkersRef.current.forEach((marker) => {
+        const element = markersRef.current[marker.id]?.getElement();
+        if (element) applyStatus(element, marker);
+      });
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const map = new MaplibreMap({

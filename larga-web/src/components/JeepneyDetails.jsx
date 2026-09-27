@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { getRoute, routeLabel } from '../constants/routes';
 import { seatAvailability } from '../utils/seatAvailability';
+import JeepneySignal from './JeepneySignal';
 
 export default function JeepneyDetails({ driver, onClose }) {
   const backRef = useRef(null);
@@ -12,6 +13,7 @@ export default function JeepneyDetails({ driver, onClose }) {
     <button ref={backRef} type="button" onClick={onClose} className="font-accent mb-3 flex min-h-11 items-center gap-2 text-sm text-gray-600"><ArrowLeft size={18} /> Nearby jeepneys</button>
     <p className={`font-accent text-xs ${seats.full ? 'text-red-600' : 'text-primary'}`} role="status">{seats.full ? 'Full · No seats available' : 'On the road'}</p>
     <h2 className="font-heading mt-1 text-2xl text-black">{driver.jeepneyNumber || 'Plate unavailable'}</h2>
+    <JeepneySignal driver={driver} />
     <p className="font-regular mt-1 text-sm text-gray-600">{route ? `${route.code} · ${routeLabel(route, driver.direction)}` : 'Route not set'}</p>
     <dl className="my-5 grid grid-cols-2 divide-x divide-gray-200 border-y border-gray-200 py-4">
       <div className="pr-3"><dt className="font-regular text-xs text-gray-500">Seats left</dt><dd className={`font-heading mt-1 text-3xl ${seats.full ? 'text-red-600' : 'text-black'}`}>{seats.left ?? '—'}</dd><p className="font-regular text-xs text-gray-500">{seats.capacity ? `of ${seats.capacity} seats` : 'Capacity unavailable'}</p></div>

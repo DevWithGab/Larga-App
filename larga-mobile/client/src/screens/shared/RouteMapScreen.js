@@ -79,6 +79,7 @@ export default function RouteMapScreen({ navigation, route: navRoute }) {
           id: driver.id,
           coordinate: [driver.location.longitude, driver.location.latitude],
           variant: 'jeepney',
+          driver,
         })),
       ]
     : [];

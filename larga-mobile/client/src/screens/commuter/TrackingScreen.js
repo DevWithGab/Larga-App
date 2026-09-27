@@ -174,7 +174,7 @@ export default function TrackingScreen({ navigation, route }) {
       <View className="flex-1">
         <JeepneyMap
           markers={[
-            ...(coordinate ? [{ id: driverId, coordinate, variant: 'jeepney', selected: true, full: seatsLeft === 0 }] : []),
+            ...(coordinate ? [{ id: driverId, coordinate, variant: 'jeepney', driver, selected: true, full: seatsLeft === 0 }] : []),
             ...(myLocation ? [{ id: 'me', coordinate: myLocation, variant: 'you' }] : []),
           ]}
           center={coordinate ?? lastKnownCoordinate ?? myLocation ?? undefined}

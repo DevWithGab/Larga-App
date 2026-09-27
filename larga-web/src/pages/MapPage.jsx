@@ -105,6 +105,7 @@ export default function MapPage() {
         id: driver.id,
         coordinate: [driver.location.longitude, driver.location.latitude],
         variant: 'jeepney',
+        driver,
         heading: driver.heading,
         full: seatAvailability(driver).full,
         selected: driver.id === selectedId,
