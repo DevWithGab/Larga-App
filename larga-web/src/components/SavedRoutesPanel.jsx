@@ -45,11 +45,11 @@ export default function SavedRoutesPanel({ saved, activeRouteId, onOpen }) {
     <div className="mb-4 flex items-center justify-between gap-3"><p className="text-sm text-muted-foreground">{saved.routes.length} saved {saved.routes.length === 1 ? 'route' : 'routes'}</p><Button ref={addButton} disabled={saved.busy || !available.length} onClick={() => beginEdit(null)}><Plus className="size-4" />Save route</Button></div>
     <div role="status" className="mb-3 text-sm text-emerald-700">{message}</div>
     {!saved.routes.length ? <div className="rounded-lg border border-border px-5 py-12 text-center"><Bookmark className="mx-auto mb-3 size-6 text-muted-foreground" /><h2 className="text-sm font-medium">No saved routes</h2><p className="mt-2 text-sm text-muted-foreground">Save a route to quickly find its map and your boarding notes.</p><Button variant="outline" className="mt-5" onClick={() => beginEdit(null)}>Save a route</Button></div>
-      : <ul className="divide-y divide-border rounded-lg border border-border">{saved.routes.map((item) => {
+      : <ul className="divide-y divide-border rounded-lg border border-border bg-white">{saved.routes.map((item) => {
         const route = getRoute(item.routeId);
         const title = item.name || routePairLabel(route) || 'Unavailable route';
         return <li key={item.id} className="flex flex-wrap items-start gap-3 p-4 sm:items-center sm:gap-4 sm:p-5">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 text-sm font-semibold">{route?.code || '—'}</span>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-orange-200 bg-orange-100 text-sm font-bold text-primary-dark">{route?.code || '—'}</span>
           <div className="min-w-0 flex-1"><h2 className="break-words text-sm font-semibold">{title}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">{route ? routeLabel(route, item.direction) : 'This route is no longer available.'}{route && <span> · ₱{route.fare} one way</span>}</p>{item.notes && <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-muted-foreground">{item.notes}</p>}</div>
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" size="icon" disabled={!route || saved.busy} aria-label={`Edit ${title}`} onClick={() => beginEdit(item)}><Pencil className="size-4" /></Button>

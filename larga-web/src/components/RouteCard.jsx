@@ -4,8 +4,8 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
 export default function RouteCard({ route, runningCount = 0, nearestEtaMinutes, saved, saveDisabled = false, onToggleSave, onOpen, loading = false }) {
-  return <article className="group grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-5 last:border-0 lg:grid-cols-[44px_minmax(0,1fr)_80px_90px_auto] sm:gap-4 sm:px-5">
-    <span className="flex size-10 items-center justify-center rounded-md border border-border bg-muted/40 text-sm font-semibold tabular-nums">{route.code}</span>
+  return <article className="group grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-white px-4 py-5 transition-colors last:border-0 hover:bg-orange-50/50 lg:grid-cols-[44px_minmax(0,1fr)_80px_90px_auto] sm:gap-4 sm:px-5">
+    <span className="flex size-10 items-center justify-center rounded-lg border border-orange-200 bg-orange-100 text-sm font-bold tabular-nums text-primary-dark">{route.code}</span>
     <div className="min-w-0"><h2 className="text-sm font-semibold leading-6">{routePairLabel(route)}</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">Both directions <span className="lg:hidden">· ₱{route.fare} one way</span></p>
       {nearestEtaMinutes != null && <p className="mt-1 text-xs text-muted-foreground">Nearest ride: ~{nearestEtaMinutes} min travel estimate</p>}

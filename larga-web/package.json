@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:navigation": "node scripts/check-navigation.mjs",
     "dev": "vite",
     "build": "vite build",
     "prepreview": "npm run build",

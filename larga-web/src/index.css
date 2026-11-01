@@ -14,7 +14,7 @@
   --color-card-foreground: #18181b;
   --color-popover: #ffffff;
   --color-popover-foreground: #18181b;
-  --color-primary-foreground: #ffffff;
+  --color-primary-foreground: #291608;
   --color-secondary: #f4f4f5;
   --color-secondary-foreground: #27272a;
   --color-muted: #f4f4f5;
@@ -33,13 +33,21 @@
   --font-body: 'Baloo 2', ui-rounded, system-ui, -apple-system, sans-serif;
 }
 
-/* Keep the wordmark expressive; use a quiet, readable face for commuter tools. */
+/* Larga's orange identity, with a readable face for commuter controls. */
 .commuter-shell {
   --font-body: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --font-brand: 'Baloo 2', ui-rounded, system-ui, sans-serif;
   --color-primary-dark: #a7470b;
   font-family: var(--font-body);
   color: var(--color-foreground);
-  background: #fff;
+  background: #fffbf7;
+}
+.commuter-shell h1 { font-family: var(--font-brand); }
+.commuter-shell [data-slot="tabs-list"] { background: #ffedd5; }
+.commuter-shell [data-slot="tabs-trigger"][data-state="active"] {
+  color: #291608;
+  background: var(--color-primary);
+  box-shadow: none;
 }
 .commuter-shell button, .commuter-shell a, .commuter-shell input,
 .commuter-shell select, .commuter-shell textarea { -webkit-tap-highlight-color: transparent; }
