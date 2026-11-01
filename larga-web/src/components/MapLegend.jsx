@@ -4,7 +4,7 @@ import { ChevronDown, MapPin } from 'lucide-react';
 export default function MapLegend() {
   const [expanded, setExpanded] = useState(false);
   return (
-    <aside aria-label="Map legend" className="absolute left-4 top-32 z-10 w-44 rounded-2xl bg-white/95 p-3 shadow-lg shadow-black/10 backdrop-blur-sm md:bottom-9 md:left-auto md:right-4 md:top-auto">
+    <aside aria-label="Map legend" className="absolute left-4 top-52 z-10 w-44 rounded-2xl bg-white/95 p-3 shadow-lg shadow-black/10 backdrop-blur-sm md:bottom-9 md:left-auto md:right-4 md:top-auto">
       <button type="button" aria-expanded={expanded} aria-controls="map-legend-items"
         onClick={() => setExpanded(!expanded)}
         className="font-accent flex min-h-8 w-full items-center justify-between text-xs text-gray-800 md:hidden">

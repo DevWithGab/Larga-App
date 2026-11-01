@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Crosshair, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Crosshair, Search, SlidersHorizontal, BusFront, ArrowUpRight } from 'lucide-react';
 import JeepneyMap from '../components/JeepneyMap';
 import JeepneyDetails from '../components/JeepneyDetails';
 import { seatAvailability } from '../utils/seatAvailability';
@@ -18,7 +18,8 @@ import {
   routePairLabel,
 } from '../constants/routes';
 import { fetchRoutePath } from '../utils/osrm';
-import { distanceMeters, estimateEtaMinutes } from '../utils/geo';
+import { formatDistance, estimateEtaMinutes } from '../utils/geo';
+import { selectCommuterRides } from '../utils/commuterRides';
 
 const FILTERS = [
   { id: 'all', label: 'All routes' },
@@ -27,14 +28,15 @@ const FILTERS = [
 
 export default function MapPage() {
   const [activeFilter, setActiveFilter] = useState('all');
-  const [direction, setDirection] = useState('forward');
+  const [direction, setDirection] = useState('both');
+  const [seatsOnly, setSeatsOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [focus, setFocus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
 
   const [collapsed, setCollapsed] = useState(false);
 
-  const { drivers: liveDrivers, error: driverError } = useOnlineDrivers();
+  const { drivers: liveDrivers, error: driverError, loading } = useOnlineDrivers();
   const { coordinate: myLocation, status: locationStatus, requestLocation } = useMyLocation();
   const { areaRef, sheetStyle, handleProps, isDragging } = useResizableSheet();
 
@@ -74,20 +76,11 @@ export default function MapPage() {
   }, [state?.filter, state?.direction]);
 
   const visibleDrivers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return liveDrivers.filter((driver) => {
-      const route = getRoute(driver.routeId);
-      if (activeFilter !== 'all' && driver.routeId !== activeFilter) return false;
-      if (!term) return true;
-      // Search over what's actually on screen for a row: its towns, its route
-      // code and the plate number.
-      const haystack = [route?.code, ...(route?.towns ?? []), driver.jeepneyNumber]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(term);
-    });
-  }, [liveDrivers, activeFilter, search]);
+    return selectCommuterRides(liveDrivers, { routeId: activeFilter, direction, search, seatsOnly, location: myLocation, routes: ROUTES });
+  }, [liveDrivers, activeFilter, direction, search, seatsOnly, myLocation]);
+  const selectedRoute = getRoute(activeFilter);
+  const hasFilters = activeFilter !== 'all' || search.trim() || seatsOnly;
+  const resetFilters = () => { setActiveFilter('all'); setDirection('both'); setSearch(''); setSeatsOnly(false); };
 
   const selectedDriver = visibleDrivers.find((driver) => driver.id === selectedId);
   useEffect(() => {
@@ -149,6 +142,7 @@ export default function MapPage() {
               className="font-regular ml-2 w-full bg-transparent text-sm text-black outline-none
                          placeholder:text-gray-400"
               placeholder="Where are you headed?"
+              aria-label="Search by town, route code, or plate number"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -164,7 +158,8 @@ export default function MapPage() {
                 <button
                   key={id}
                   type="button"
-                  onClick={() => { setActiveFilter(id); setDirection('forward'); }}
+                  onClick={() => { setActiveFilter(id); setDirection('both'); }}
+                  aria-pressed={isActive}
                   className={`font-accent pointer-events-auto shrink-0 rounded-full border px-4 py-2
                               text-sm shadow-md shadow-black/5 backdrop-blur-sm transition-colors ${
                                 isActive
@@ -177,6 +172,20 @@ export default function MapPage() {
               );
             })}
           </div>
+          <div className="pointer-events-auto mt-1 flex w-fit max-w-full items-center gap-3 rounded-2xl border border-gray-100 bg-white/95 p-2 shadow-lg shadow-black/5 backdrop-blur-sm">
+            {selectedRoute && <label className="font-accent flex min-w-0 items-center gap-1 text-xs text-gray-600">
+              <SlidersHorizontal size={15} className="ml-1 shrink-0" />
+              <select aria-label="Travel direction" value={direction} onChange={(event) => setDirection(event.target.value)} className="min-h-10 min-w-0 max-w-44 rounded-xl bg-gray-50 px-2 text-black focus-visible:outline-primary">
+                <option value="both">Both directions</option>
+                <option value="forward">To {selectedRoute.towns[1]}</option>
+                <option value="reverse">To {selectedRoute.towns[0]}</option>
+              </select>
+            </label>}
+            <label className="font-accent flex min-h-10 cursor-pointer items-center gap-2 px-2 text-xs text-gray-700">
+              <input type="checkbox" checked={seatsOnly} onChange={(event) => setSeatsOnly(event.target.checked)} className="h-4 w-4 accent-primary" />
+              Seats available
+            </label>
+          </div>
         </div>
 
         <MapLegend />
@@ -186,7 +195,7 @@ export default function MapPage() {
             type="button"
             onClick={() => myLocation ? focusOn(myLocation) : requestLocation()}
             aria-label={myLocation ? 'Recenter on my location' : 'Turn on location'}
-            className="absolute right-4 top-32 flex h-11 w-11 items-center justify-center rounded-full
+            className="absolute right-4 top-52 flex h-11 w-11 items-center justify-center rounded-full
                        bg-white shadow-lg shadow-black/10 hover:bg-gray-50"
           >
             <Crosshair size={20} />
@@ -202,7 +211,7 @@ export default function MapPage() {
                       ${/* Never tall enough to reach the floating search bar and filter
                             pills — the map fills the pane now, so without this the sheet
                             would cover the controls at its largest stop. */ ''}
-                      max-h-[calc(100%-8rem)] md:max-h-[calc(100%-9rem)]
+                      max-h-[calc(100%-12rem)] md:max-h-[calc(100%-12rem)]
                       ${/* Anchored to the bottom with no top inset, so on a wide screen the
                             panel is only as tall as what's in it — stretching it top to bottom
                             meant an empty list still covered most of the map. */ ''}
@@ -224,10 +233,10 @@ export default function MapPage() {
 
           {selectedDriver ? <JeepneyDetails driver={selectedDriver} onClose={() => setSelectedId(null)} /> : <>
           <div className={`mb-4 flex shrink-0 items-center justify-between ${collapsed ? 'md:mb-0' : ''}`}>
-            <h1 className="font-heading text-lg text-black">Nearby jeepneys</h1>
+            <div><p className="font-accent mb-0.5 text-[10px] uppercase tracking-widest text-primary">Find your ride</p><h1 className="font-heading text-lg text-black">Nearby jeepneys</h1></div>
             <div className="flex items-center gap-2">
               <span className="font-accent rounded-full bg-orange-50 px-3 py-1 text-xs text-primary">
-                {visibleDrivers.length} running
+                {visibleDrivers.length} {hasFilters ? 'matches' : 'running'}
               </span>
               {/* The wide-screen counterpart of the phone's drag handle: there
                   the sheet sits over the map, here it sits beside it, so what's
@@ -250,6 +259,7 @@ export default function MapPage() {
               has the drag handle for this, and its stops already go down to a
               header-only peek. */}
           <div className={`flex min-h-0 flex-1 flex-col ${collapsed ? 'md:hidden' : ''}`}>
+          <p className="font-regular mb-3 text-xs text-gray-500">{myLocation ? 'Closest first · distances measured from you' : 'Choose a route, then pick a jeepney to see details.'}</p>
           {locationStatus === 'denied' && (
             <p className="font-regular mb-3 shrink-0 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-500">
               Location is blocked, so distances and ETAs are hidden. Allow location in your browser to
@@ -259,33 +269,31 @@ export default function MapPage() {
 
           {driverError ? (
             <p role="alert" className="font-regular text-sm text-red-600">{driverError}</p>
+          ) : loading ? (
+            <p role="status" className="font-regular py-6 text-sm text-gray-500">Finding live jeepneys…</p>
           ) : visibleDrivers.length === 0 ? (
-            <p className="font-regular text-sm text-gray-500">
-              No jeepneys are online for this route right now.
-            </p>
+            <div className="rounded-2xl bg-gray-50 px-4 py-5 text-center" role="status">
+              <BusFront size={28} className="mx-auto mb-2 text-gray-400" />
+              <p className="font-heading text-base">{hasFilters ? 'No rides match yet' : 'No jeepneys online yet'}</p>
+              <p className="font-regular mt-1 text-xs text-gray-500">{hasFilters ? 'Try another direction or include rides without reported seats.' : 'Live rides will appear here when drivers start broadcasting.'}</p>
+              {hasFilters && <button type="button" onClick={resetFilters} className="font-accent mt-3 min-h-11 rounded-xl bg-black px-4 text-sm text-white hover:bg-gray-800">Clear filters</button>}
+            </div>
           ) : (
             <ul className="min-h-0 flex-1 overflow-y-auto">
               {visibleDrivers.map((driver) => {
                 const route = getRoute(driver.routeId);
                 const seatsLeft = seatAvailability(driver).left;
-                const etaMinutes = myLocation
-                  ? estimateEtaMinutes(
-                      distanceMeters(
-                        { latitude: myLocation[1], longitude: myLocation[0] },
-                        driver.location
-                      )
-                    )
-                  : null;
+                const etaMinutes = estimateEtaMinutes(driver.distance);
 
                 return (
                   <li key={driver.id}>
                     <button
                       type="button"
                       onClick={() => selectDriver(driver)}
-                      className="flex w-full items-center border-b border-gray-100 py-3 text-left
-                                 hover:bg-gray-50"
+                      className="mb-2 flex w-full items-center rounded-2xl border border-gray-100 p-3 text-left
+                                 transition-colors hover:border-orange-200 hover:bg-orange-50 focus-visible:outline-primary"
                     >
-                      <span className="mr-3 flex h-11 w-11 shrink-0 items-center justify-center">
+                      <span className="mr-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
                         <img src="/larga-jeep/larga-jeep.png" alt="" className="h-11 w-11 object-contain" />
                       </span>
                       <span className="min-w-0 flex-1">
@@ -301,9 +309,10 @@ export default function MapPage() {
                             </span>
                           )}
                         </span>
+                        {driver.distance != null && <span className="font-regular mt-1 block text-xs text-gray-500">{formatDistance(driver.distance)}</span>}
                       </span>
-                      <span className="font-heading ml-2 shrink-0 text-sm text-black">
-                        {etaMinutes === null ? '—' : `~${etaMinutes} min`}
+                      <span className="font-heading ml-2 shrink-0 text-right text-sm text-black">
+                        {etaMinutes === null ? <ArrowUpRight size={18} /> : <>{`~${etaMinutes} min`}<span className="font-regular block text-[10px] text-gray-500">est. travel</span></>}
                       </span>
                     </button>
                   </li>
@@ -311,6 +320,7 @@ export default function MapPage() {
               })}
             </ul>
           )}
+          {myLocation && visibleDrivers.length > 0 && <p className="font-regular mt-2 text-[10px] text-gray-400">Travel estimates use straight-line distance, not traffic or approach direction.</p>}
           </div>
           </>}
         </div>

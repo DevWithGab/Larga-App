@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getRoute, routeLabel } from '../constants/routes';
 import { seatAvailability } from '../utils/seatAvailability';
 import JeepneySignal from './JeepneySignal';
+import { estimateEtaMinutes, formatDistance } from '../utils/geo';
 
 export default function JeepneyDetails({ driver, onClose }) {
   const backRef = useRef(null);
@@ -15,6 +16,11 @@ export default function JeepneyDetails({ driver, onClose }) {
     <h2 className="font-heading mt-1 text-2xl text-black">{driver.jeepneyNumber || 'Plate unavailable'}</h2>
     <JeepneySignal driver={driver} />
     <p className="font-regular mt-1 text-sm text-gray-600">{route ? `${route.code} · ${routeLabel(route, driver.direction)}` : 'Route not set'}</p>
+    {driver.distance != null && <div className="mt-4 rounded-2xl border border-orange-100 bg-orange-50 p-4">
+      <p className="font-accent text-xs text-gray-600">Distance from you</p>
+      <p className="font-heading mt-1 text-xl text-black">{formatDistance(driver.distance)} <span className="font-regular text-sm text-gray-600">· ~{estimateEtaMinutes(driver.distance)} min travel</span></p>
+      <p className="font-regular mt-1 text-xs text-gray-500">Approximate travel time using straight-line distance. Traffic, stops, and whether the jeepney is approaching are not included.</p>
+    </div>}
     <dl className="my-5 grid grid-cols-2 divide-x divide-gray-200 border-y border-gray-200 py-4">
       <div className="pr-3"><dt className="font-regular text-xs text-gray-500">Seats left</dt><dd className={`font-heading mt-1 text-3xl ${seats.full ? 'text-red-600' : 'text-black'}`}>{seats.left ?? '—'}</dd><p className="font-regular text-xs text-gray-500">{seats.capacity ? `of ${seats.capacity} seats` : 'Capacity unavailable'}</p></div>
       <div className="pl-4"><dt className="font-regular text-xs text-gray-500">Route fare</dt><dd className="font-heading mt-1 text-3xl text-black">{route?.fare != null ? `₱${route.fare}` : '—'}</dd><p className="font-regular text-xs text-gray-500">End-to-end · per person</p></div>

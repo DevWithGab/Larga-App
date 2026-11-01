@@ -10,6 +10,7 @@ export function useOnlineDrivers() {
   const [drivers, setDrivers] = useState([]);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Drives the "has this jeepney gone quiet" check. Nothing else needs a
   // clock, so a slow tick is plenty.
@@ -22,6 +23,7 @@ export function useOnlineDrivers() {
     const driversQuery = query(collection(db, 'drivers'), where('isOnline', '==', true));
     return onSnapshot(driversQuery, (snapshot) => {
       setError('');
+      setLoading(false);
       setDrivers(
         snapshot.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
@@ -30,6 +32,7 @@ export function useOnlineDrivers() {
     }, (cause) => {
       console.error('Live driver subscription failed:', cause);
       setDrivers([]);
+      setLoading(false);
       setError(cause.code === 'permission-denied'
         ? 'Live jeepney locations are unavailable because access was denied. Please contact support.'
         : 'Unable to load live jeepney locations. Check your connection and reload.');
@@ -38,5 +41,5 @@ export function useOnlineDrivers() {
 
   // isOnline alone only means the last thing that phone managed to say was
   // "I'm online" — not that it's still there to say it.
-  return { drivers: drivers.filter((driver) => isDriverLive(driver, now)), error };
+  return { drivers: drivers.filter((driver) => isDriverLive(driver, now)), error, loading };
 }
