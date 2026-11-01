@@ -1,14 +1,52 @@
 @import 'tailwindcss';
 
 @import 'maplibre-gl/dist/maplibre-gl.css';
+@import 'tw-animate-css';
 
 
 @theme {
   --color-primary: #f57c1f;
   --color-primary-light: #ff9f4a;
   --color-primary-dark: #d66a15;
+  --color-background: #ffffff;
+  --color-foreground: #18181b;
+  --color-card: #ffffff;
+  --color-card-foreground: #18181b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #18181b;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f4f4f5;
+  --color-secondary-foreground: #27272a;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #18181b;
+  --color-destructive: #dc2626;
+  --color-border: #e4e4e7;
+  --color-input: #d4d4d8;
+  --color-ring: #f57c1f;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
   --font-body: 'Baloo 2', ui-rounded, system-ui, -apple-system, sans-serif;
+}
+
+/* Keep the wordmark expressive; use a quiet, readable face for commuter tools. */
+.commuter-shell {
+  --font-body: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --color-primary-dark: #a7470b;
+  font-family: var(--font-body);
+  color: var(--color-foreground);
+  background: #fff;
+}
+.commuter-shell button, .commuter-shell a, .commuter-shell input,
+.commuter-shell select, .commuter-shell textarea { -webkit-tap-highlight-color: transparent; }
+.commuter-shell :focus-visible { outline-offset: 3px; }
+
+@layer base {
+  * { border-color: var(--color-border); }
 }
 
 

@@ -2,179 +2,30 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Bell, Bookmark, LogOut, Map, PanelLeftClose, PanelLeftOpen, Route, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import { Separator } from './ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { cn } from '../lib/utils';
 
-
-const TABS = [
-  { to: '/map', label: 'Map', Icon: Map },
-  { to: '/routes', label: 'Routes', Icon: Route },
-  { to: '/saved-routes', label: 'Saved Routes', Icon: Bookmark },
-  { to: '/alerts', label: 'Alerts', Icon: Bell },
-  { to: '/profile', label: 'Profile', Icon: User },
-];
-
-const STORAGE_KEY = 'larga:sidebar-collapsed';
-
-function readCollapsed() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    // Private mode or blocked site data — the rail just always starts open.
-    return false;
-  }
-}
+const TABS = [{ to: '/map', label: 'Map', Icon: Map }, { to: '/routes', label: 'Routes', Icon: Route }, { to: '/saved-routes', label: 'Saved', Icon: Bookmark }, { to: '/alerts', label: 'Alerts', Icon: Bell }, { to: '/profile', label: 'Profile', Icon: User }];
+function readCollapsed() { try { return localStorage.getItem('larga:sidebar-collapsed') === '1'; } catch { return false; } }
 
 export default function CommuterLayout() {
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  const [leaving, setLeaving] = useState(false);
+  const [error, setError] = useState('');
   const { user, profile, logOut } = useAuth();
   const navigate = useNavigate();
-
-  const toggleCollapsed = () =>
-    setCollapsed((isCollapsed) => {
-      const next = !isCollapsed;
-      try {
-        localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
-      } catch {
-        /* not worth telling anyone about */
-      }
-      return next;
-    });
-
-  const handleLogOut = async () => {
-    if (user) await logOut();
-    // Without this the router would land on the splash anyway once `user`
-    // clears, but asking explicitly avoids a frame of the commuter shell
-    // rendering with nobody signed in.
-    navigate('/', { replace: true });
-  };
-
-  const tabClasses = ({ isActive }) =>
-    [
-      'relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors',
-      'md:flex-none md:flex-row md:gap-3 md:rounded-xl md:py-2.5',
-      collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-4',
-      isActive
-        ? 'text-primary md:bg-orange-50'
-        : 'text-gray-500 hover:text-black md:hover:bg-gray-50',
-    ].join(' ');
-
-  const collapseButton = (
-    <button
-      type="button"
-      onClick={toggleCollapsed}
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400
-                 transition-colors hover:bg-gray-100 hover:text-black"
-    >
-      {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-    </button>
-  );
-
-  const collapsedMark = (
-    <img
-      src="/logo/logo-larga-short.png"
-      alt="Larga"
-      className="h-10 w-10 shrink-0 object-contain"
-    />
-  );
-  const avatar = (
-    <img
-      src="/avatar/commuter.webp"
-      alt=""
-      className="h-9 w-9 shrink-0 rounded-full bg-orange-50 object-contain"
-    />
-  );
-
-  return (
-    <div className="flex h-full w-full flex-col md:flex-row">
-      <nav
-        className={`order-2 flex shrink-0 border-t border-gray-100 bg-white transition-[width]
-                    duration-200 md:order-1 md:flex-col md:justify-start md:gap-1 md:overflow-y-auto
-                    md:border-r md:border-t-0 md:p-3 ${collapsed ? 'md:w-20' : 'md:w-60'}`}
-      >
-        {/* The full wordmark when there's room, the cropped lockup when there
-            isn't. */}
-        <div className="hidden md:block md:px-1 md:pb-5 md:pt-2">
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
-            {collapsed ? (
-              collapsedMark
-            ) : (
-              <>
-                <img
-                  src="/logo/logo-larga-for_LIGHT.png"
-                  alt="Larga"
-                  className="ml-1 h-9 object-contain"
-                />
-                {collapseButton}
-              </>
-            )}
-          </div>
-          {/* Collapsed, the mark and the toggle stack — side by side they
-              wouldn't fit in the narrow rail. */}
-          {collapsed && <div className="mt-3 flex justify-center">{collapseButton}</div>}
-        </div>
-
-        {TABS.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} className={tabClasses} aria-label={label} title={collapsed ? label : undefined}>
-            {({ isActive }) => (
-              <>
-                {/* A bar against the rail's edge, so which tab you're on reads
-                    at a glance even when the labels are hidden. */}
-                {isActive && (
-                  <span
-                    className="absolute left-0 top-1/2 hidden h-5 w-1 -translate-y-1/2
-                               rounded-r-full bg-primary md:block"
-                  />
-                )}
-                <Icon size={22} strokeWidth={isActive ? 2.4 : 2} />
-                <span
-                  className={`font-accent text-[11px] md:text-sm ${collapsed ? 'md:hidden' : ''}`}
-                >
-                  {label}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
-
-        {/* mt-auto pins this to the foot of the rail, however tall it is. */}
-        <div className="hidden md:mt-auto md:block md:pt-4">
-          <div className="border-t border-gray-100 pt-3">
-            {collapsed ? (
-              <div className="mb-1 flex justify-center" title={profile?.name ?? user?.email ?? ''}>
-                {avatar}
-              </div>
-            ) : (
-              <div className="mb-1 flex items-center gap-3 px-2 py-1">
-                {avatar}
-                <div className="min-w-0">
-                  <p className="font-accent truncate text-sm text-black">
-                    {profile?.name ?? 'Commuter'}
-                  </p>
-                  <p className="font-regular truncate text-xs text-gray-500">{user?.email}</p>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleLogOut}
-              title={collapsed ? (user ? 'Log out' : 'Back to start') : undefined}
-              className={`flex w-full items-center gap-3 rounded-xl py-2.5 text-gray-500
-                          transition-colors hover:bg-red-50 hover:text-red-600
-                          ${collapsed ? 'justify-center px-0' : 'px-4'}`}
-            >
-              <LogOut size={22} strokeWidth={2} />
-              {!collapsed && <span className="font-accent text-sm">{user ? 'Log out' : 'Back to start'}</span>}
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="order-1 relative min-h-0 flex-1 md:order-2">
-        <Outlet />
-      </main>
-    </div>
-  );
+  function toggle() { setCollapsed((value) => { try { localStorage.setItem('larga:sidebar-collapsed', value ? '0' : '1'); } catch { /* Optional preference. */ } return !value; }); }
+  async function leave() { setLeaving(true); setError(''); try { if (user) await logOut(); navigate('/', { replace: true }); } catch { setError('Could not sign out. Try again.'); setLeaving(false); } }
+  return <TooltipProvider><div className="commuter-shell flex h-full w-full flex-col md:flex-row">
+    <nav aria-label="Main navigation" className={cn('order-2 flex shrink-0 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] md:order-1 md:flex-col md:border-r md:border-t-0 md:bg-zinc-50/60 md:p-3', collapsed ? 'md:w-[72px]' : 'md:w-52')}>
+      <div className="hidden h-16 items-center justify-between px-2 md:flex"><img src={collapsed ? '/logo/logo-larga-short.png' : '/logo/logo-larga-for_LIGHT.png'} alt="Larga" className={collapsed ? 'mx-auto size-9 object-contain' : 'h-8 w-auto object-contain'} />{!collapsed && <Button variant="ghost" size="icon" onClick={toggle} aria-label="Collapse sidebar" aria-expanded={!collapsed}><PanelLeftClose className="size-4 text-muted-foreground" /></Button>}</div>
+      {collapsed && <Button variant="ghost" size="icon" className="mx-auto mb-3 hidden md:inline-flex" onClick={toggle} aria-label="Expand sidebar" aria-expanded={!collapsed}><PanelLeftOpen className="size-4" /></Button>}
+      <div className="hidden px-3 pb-3 pt-4 text-[11px] font-medium text-muted-foreground md:block">{!collapsed && 'COMMUTE'}</div>
+      {TABS.map(({ to, label, Icon }) => <Tooltip key={to}><TooltipTrigger asChild><NavLink to={to} aria-label={label === 'Saved' ? 'Saved routes' : label} className={({ isActive }) => cn('flex min-h-14 flex-1 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium transition-colors md:mb-1 md:min-h-10 md:flex-none md:flex-row md:gap-3 md:rounded-md md:text-sm', collapsed ? 'md:justify-center md:px-0' : 'md:justify-start md:px-3', isActive ? 'text-primary-dark md:bg-orange-100/60' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}><Icon className="size-[19px] shrink-0" strokeWidth={1.8} /><span className={collapsed ? 'md:hidden' : ''}>{label}</span></NavLink></TooltipTrigger>{collapsed && <TooltipContent side="right" className="hidden md:block">{label}</TooltipContent>}</Tooltip>)}
+      <div className="mt-auto hidden pt-5 md:block"><Separator /><div className={cn('flex items-center gap-2.5 py-4', collapsed ? 'justify-center' : 'px-2')}><span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-white text-xs font-semibold">{profile?.name?.trim()?.slice(0, 1)?.toUpperCase() || <User className="size-4" />}</span>{!collapsed && <div className="min-w-0"><p className="truncate text-xs font-medium">{profile?.name || 'Guest commuter'}</p><p className="mt-0.5 truncate text-[11px] text-muted-foreground">{user ? user.email : 'Saved on this device'}</p></div>}</div><Button variant="ghost" disabled={leaving} onClick={leave} aria-label={user ? 'Sign out' : 'Back to start'} className={cn('w-full text-muted-foreground', collapsed ? 'px-0' : 'justify-start')}><LogOut className="size-4" />{!collapsed && (leaving ? 'Leaving…' : user ? 'Sign out' : 'Back to start')}</Button>{error && <p role="alert" className="mt-2 text-xs text-red-700">{error}</p>}</div>
+    </nav>
+    <main className="relative order-1 min-h-0 min-w-0 flex-1 md:order-2"><Outlet /></main>
+  </div></TooltipProvider>;
 }
