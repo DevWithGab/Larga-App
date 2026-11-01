@@ -68,7 +68,7 @@ export default function MapPage() {
   useEffect(() => {
     if (state?.filter) {
       setActiveFilter(state.filter);
-      setDirection(state.direction === 'reverse' ? 'reverse' : 'forward');
+      setDirection(['forward', 'reverse'].includes(state.direction) ? state.direction : 'both');
     }
   }, [state?.filter, state?.direction]);
 
