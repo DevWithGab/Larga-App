@@ -20,17 +20,6 @@
       href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <!-- The landing page hero artwork is the LCP element, and it is referenced
-         from inside a React component, so the browser would otherwise only
-         discover it once the bundle has parsed. imagesrcset/imagesizes must
-         mirror the <img> in SplashPage.jsx, or the preload fetches a second,
-         different file instead of priming the one the page uses. -->
-    <link
-      rel="preload"
-      as="image"
-      href="/hero/right-visual-larga-new.png"
-      fetchpriority="high"
-    />
     <title>Larga — Real-Time Jeepney Tracking</title>
   </head>
   <body>

@@ -43,6 +43,7 @@
   background: #fffbf7;
 }
 .commuter-shell h1 { font-family: var(--font-brand); }
+.landing-page { font-family: 'Segoe UI', ui-sans-serif, system-ui, sans-serif; }
 .commuter-shell [data-slot="tabs-list"] { background: #ffedd5; }
 .commuter-shell [data-slot="tabs-trigger"][data-state="active"] {
   color: #291608;

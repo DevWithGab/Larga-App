@@ -1,191 +1,73 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bell, Bus, MapPin, Radio } from 'lucide-react';
-import { ROUTES, TOWN_COORDS } from '../constants/routes';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { ROUTES, TOWN_COORDS, routePairLabel } from '../constants/routes';
 
-const FARES = ROUTES.map((route) => route.fare).filter((fare) => fare != null);
 const TOWNS = Object.keys(TOWN_COORDS);
-
-
-const FEATURES = [
-  {
-    Icon: Radio,
-    label: 'Real-time\ntracking',
-    title: 'Live, not scheduled',
-    body: "Drivers share their GPS while they drive, so you see where the jeepney actually is — not where a timetable says it should be.",
-  },
-  {
-    Icon: MapPin,
-    label: `${ROUTES.length} real\nroutes`,
-    title: `${ROUTES.length} real routes`,
-    body: `Every route on the Santa Fe–Solano corridor, with the fare operators actually charge: ₱${Math.min(
-      ...FARES
-    )} to ₱${Math.max(...FARES)} end to end.`,
-  },
-  {
-    Icon: Bell,
-    label: 'Arrival\nalerts',
-    title: 'Told before it arrives',
-    body: 'Pick a jeepney and get an alert as it gets close, so waiting happens indoors instead of at the roadside.',
-  },
-];
 
 export default function SplashPage() {
   return (
-    <div className="h-full w-full overflow-y-auto bg-white">
-
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(160deg, #ffffff 0%, #fffdf9 52%, #fff4e6 100%)',
-        }}
-      >
-
-        <svg
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-24 w-full sm:h-32"
-          viewBox="0 0 1440 140"
-          preserveAspectRatio="none"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path d="M0 140 C 300 132, 520 54, 1440 18 L1440 140 Z" fill="#f57c1f" opacity="0.12" />
-          <path d="M0 140 C 340 138, 600 86, 1440 62 L1440 140 Z" fill="#f57c1f" opacity="0.22" />
-        </svg>
-
-        <img
-          src="/hero/right-visual-larga-new.png"
-          width="1312"
-          height="1199"
-          alt=""
-          aria-hidden="true"
-          fetchPriority="high"
-          className="hero-art-fade relative z-0 w-full lg:absolute lg:bottom-0 lg:right-0
-                     lg:w-[60%]"
-        />
-
-        <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5">
-          <img
-            src="/logo/logo-larga-for_LIGHT.png"
-            alt="Larga"
-            className="h-14 object-contain sm:h-20"
-          />
-          <Link
-            to="/driver"
-            className="font-accent rounded-full border border-primary/50 bg-white/70 px-6 py-2.5
-                       text-sm text-black backdrop-blur-sm transition-colors hover:bg-primary
-                       hover:text-white sm:text-base"
-          >
-            Driver sign in
-          </Link>
+    <div className="landing-page h-full w-full overflow-y-auto bg-[#fffaf4] text-[#291608]">
+      <div className="flex min-h-full flex-col">
+        <header className="border-b border-orange-200 bg-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-5 sm:px-8 lg:px-12">
+            <Link to="/" aria-label="Larga home" className="shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-primary">
+              <img src="/logo/logo-larga-for_LIGHT.png" alt="Larga" width="132" height="44" className="h-10 w-auto sm:h-11" />
+            </Link>
+            <Button asChild variant="ghost" className="text-sm text-[#291608] hover:bg-orange-50">
+              <Link to="/driver">Driver sign in<ArrowUpRight className="size-4" /></Link>
+            </Button>
+          </div>
         </header>
 
-        {/* Hero copy. Capped well short of half the container on a wide screen:
-            the artwork now starts at 40% of the window, and the copy has to end
-            inside the artwork's faded left edge, not past it. Full width below
-            lg, where the artwork has moved beneath it. */}
-        <section
-          className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-14 pt-6 lg:pb-32 lg:pt-10"
-        >
-          <div className="lg:w-[46%]">
-            <span
-              className="font-accent mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/80
-                         px-4 py-1.5 text-sm text-primary shadow-sm shadow-orange-900/5 sm:mb-8"
-            >
-              <MapPin size={15} color="#f57c1f" />
-              Nueva Vizcaya, Philippines
-            </span>
+        <main className="flex flex-1 flex-col">
+          <section aria-labelledby="welcome-title" className="border-b border-orange-200 bg-primary">
+            <div className="mx-auto grid max-w-7xl lg:grid-cols-[1.05fr_1fr]">
+              <div className="flex flex-col items-start px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+                <p className="text-xs font-semibold uppercase tracking-widest">Jeepney tracking · Nueva Vizcaya</p>
+                <h1 id="welcome-title" className="font-display mt-6 text-6xl leading-[1.02] tracking-tight sm:text-7xl lg:text-[5.5rem]">
+                  Find your<br />jeepney.
+                </h1>
+                <p className="mt-6 max-w-sm text-base leading-7 text-[#4d2c13] sm:text-lg">
+                  Live locations and route fares along the {TOWNS[0]}–{TOWNS[TOWNS.length - 1]} corridor.
+                </p>
+                <Button asChild size="lg" className="mt-8 h-12 rounded-lg bg-[#291608] px-6 text-base text-white hover:bg-[#46270f]">
+                  <Link to="/map">Open live map<ArrowRight className="size-5" /></Link>
+                </Button>
+                <p className="mt-4 text-xs text-[#4d2c13]">No account needed.</p>
+              </div>
 
-            {/* Sizes and gaps in this column are taken from the design mockup,
-                scaled by width (1536/1672 ≈ 0.92) rather than by height — the
-                mockup is 16:9 and a browser window is not, so matching on
-                height would shrink the type on every real screen.
-                Negative tracking because Baloo 2 is drawn for UI sizes and
-                spaces a little wide once it is this large. */}
-            <h1
-              className="font-heading text-[2.875rem] leading-[1.03] tracking-[-0.015em] text-black
-                         sm:text-6xl lg:text-7xl xl:text-[5.25rem]"
-            >
-              Never miss
-              <br />
-              your ride<span className="text-primary">.</span>
-            </h1>
-
-            <p
-              className="font-regular mt-6 max-w-[34rem] text-lg leading-8 text-gray-600
-                         sm:text-xl sm:leading-9"
-            >
-              Real-time jeepney tracking and route information along the {TOWNS[0]}–
-              {TOWNS[TOWNS.length - 1]} corridor.
-            </p>
-
-            {/* Both roles get their own door, side by side — on a phone the app
-                asks this on a separate screen, but a landing page has room. */}
-            <div className="mt-9 flex flex-col gap-3.5 sm:flex-row">
-              <Link
-                to="/map"
-                className="flex items-center justify-center gap-2 rounded-full bg-primary px-9 py-5
-                           shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]
-                           active:scale-100"
-              >
-                <span className="font-heading text-lg tracking-wide text-white">LARGA NA!</span>
-                <ArrowRight size={22} color="#ffffff" />
-              </Link>
-              <Link
-                to="/driver"
-                className="font-accent flex items-center justify-center gap-2.5 rounded-full
-                           border border-gray-200 bg-white px-9 py-5 text-base text-black
-                           transition-colors hover:bg-gray-50"
-              >
-                <Bus size={20} color="#f57c1f" />
-                I drive a jeepney
-              </Link>
-            </div>
-
-            <p className="font-regular mt-7 text-sm text-gray-500">
-              Free to use. No account needed to look around.
-            </p>
-
-            {/* The glance-level version of the three claims below the fold.
-                A fixed three-column grid rather than a wrapping flex row: with
-                flex-wrap, an item that wraps to a second line takes its divider
-                with it and leaves a stray rule hanging at the start of the row. */}
-            <div className="mt-12 grid max-w-xl grid-cols-3 divide-x divide-orange-200 sm:mt-16">
-              {FEATURES.map(({ Icon, label }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 px-3 first:pl-0 last:pr-0 sm:gap-2.5 sm:px-5"
-                >
-                  <Icon size={18} color="#f57c1f" className="shrink-0" />
-                  <span className="font-accent whitespace-pre-line text-sm leading-tight text-gray-700">
-                    {label}
-                  </span>
+              <section aria-labelledby="choose-route" className="border-t border-[#291608]/15 bg-[#fffaf4] px-5 py-8 sm:px-8 lg:border-l lg:border-t-0 lg:px-10 lg:py-12">
+                <div className="mb-6 flex items-center justify-between gap-3">
+                  <h2 id="choose-route" className="text-lg font-semibold">Choose your route</h2>
+                  <span className="text-xs text-[#785638]">{ROUTES.length} routes</span>
                 </div>
-              ))}
+                <ul className="border-y border-orange-200">
+                  {ROUTES.map((route) => (
+                    <li key={route.id} className="border-b border-orange-200 last:border-0">
+                      <Link to="/map" state={{ filter: route.id }} aria-label={`View ${routePairLabel(route)}, fare ₱${route.fare}, on the map`}
+                        className="group grid min-h-20 grid-cols-[28px_minmax(0,1fr)_auto_16px] items-center gap-3 rounded-sm py-4 transition-colors hover:bg-orange-100/70 focus-visible:outline-2 focus-visible:outline-primary sm:gap-4">
+                        <span className="text-xs font-semibold tabular-nums text-[#9b4a0b]">{route.code}</span>
+                        <span className="min-w-0"><span className="block text-sm font-semibold leading-6">{routePairLabel(route)}</span><span className="mt-0.5 block text-xs text-[#785638]">Both directions</span></span>
+                        <span className="text-sm font-semibold tabular-nums">₱{route.fare}</span>
+                        <ArrowRight aria-hidden="true" className="size-4 text-[#9b4a0b] transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-xs leading-5 text-[#785638]">Fares are per person, one way, end to end.</p>
+              </section>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section aria-labelledby="service-area" className="mx-auto flex w-full max-w-7xl flex-wrap items-start justify-between gap-x-12 gap-y-6 px-5 py-8 sm:px-8 lg:px-12">
+            <div><h2 id="service-area" className="text-xs font-semibold uppercase tracking-wider text-[#785638]">Service area</h2><p className="mt-2 text-sm leading-7">{TOWNS.join(' / ')}</p></div>
+            <div className="max-w-xs"><h2 className="text-sm font-semibold">Driving today?</h2><p className="mt-2 text-sm leading-6 text-[#785638]">Share your location from the Larga mobile app. View your trip reports here.</p><Link to="/driver" className="mt-2 inline-flex min-h-10 items-center gap-2 text-sm font-semibold underline decoration-orange-300 underline-offset-4 hover:decoration-[#291608]">Driver sign in<ArrowUpRight className="size-4" /></Link></div>
+          </section>
+        </main>
+
+        <footer className="border-t border-orange-200"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-5 py-5 text-xs text-[#785638] sm:px-8 lg:px-12"><p>Larga · Nueva Vizcaya, Philippines</p><p>Live locations depend on drivers broadcasting.</p></div></footer>
       </div>
-
-      {/* What it actually does */}
-      <section className="border-t border-gray-100 bg-gray-50/60">
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-12 md:grid-cols-3 lg:py-16">
-          {FEATURES.map(({ Icon, title, body }) => (
-            <div key={title}>
-              <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50">
-                <Icon size={20} color="#f57c1f" />
-              </span>
-              <h2 className="font-heading mb-1.5 text-lg text-black">{title}</h2>
-              <p className="font-regular text-sm leading-6 text-gray-600">{body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <footer className="mx-auto w-full max-w-7xl px-6 py-8">
-        <p className="font-accent text-sm text-gray-500">{TOWNS.join(' · ')}</p>
-        <p className="font-regular mt-2 text-xs text-gray-400">
-          Built for Filipino commuters. Map data © OpenStreetMap contributors.
-        </p>
-      </footer>
     </div>
   );
 }
